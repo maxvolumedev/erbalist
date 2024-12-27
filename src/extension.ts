@@ -4,13 +4,19 @@ import * as vscode from 'vscode';
 
 const CLASS_ATTR_REGEX = /class ?[=:] ?["']([^"']+)["']/g;
 const FOLDED_CLASS_ICON = '⋯';
+const ERB_RUBY_REGEX = /<%(?:=|-)?(.*?)%>/gs;
 
 let foldedDecorations: vscode.TextEditorDecorationType;
+let dimmedDecorations: vscode.TextEditorDecorationType;
 let foldedState = new WeakMap<vscode.TextEditor, Set<string>>();
 
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
+	dimmedDecorations = vscode.window.createTextEditorDecorationType({
+		opacity: '0.25'
+	});
+
 	foldedDecorations = vscode.window.createTextEditorDecorationType({
 		textDecoration: 'none; display: none',
 		before: {
@@ -63,6 +69,57 @@ export function activate(context: vscode.ExtensionContext) {
 		}
 	});
 
+	const updateDimming = (editor: vscode.TextEditor | undefined) => {
+		if (!editor || !editor.document.fileName.endsWith('.erb')) {
+			return;
+		}
+
+		const cursorPosition = editor.selection.active;
+		const text = editor.document.getText();
+		const decorations: vscode.DecorationOptions[] = [];
+		let isInRubyBlock = false;
+
+		let match;
+		while ((match = ERB_RUBY_REGEX.exec(text)) !== null) {
+			const startPos = editor.document.positionAt(match.index);
+			const endPos = editor.document.positionAt(match.index + match[0].length);
+			const range = new vscode.Range(startPos, endPos);
+
+			if (range.contains(cursorPosition)) {
+				isInRubyBlock = true;
+				break;
+			}
+		}
+
+		if (isInRubyBlock) {
+			let lastEnd = 0;
+			ERB_RUBY_REGEX.lastIndex = 0;
+			
+			while ((match = ERB_RUBY_REGEX.exec(text)) !== null) {
+				if (lastEnd < match.index) {
+					const startPos = editor.document.positionAt(lastEnd);
+					const endPos = editor.document.positionAt(match.index);
+					decorations.push({ range: new vscode.Range(startPos, endPos) });
+				}
+				lastEnd = match.index + match[0].length;
+			}
+
+			if (lastEnd < text.length) {
+				const startPos = editor.document.positionAt(lastEnd);
+				const endPos = editor.document.positionAt(text.length);
+				decorations.push({ range: new vscode.Range(startPos, endPos) });
+			}
+		}
+
+		editor.setDecorations(dimmedDecorations, decorations);
+	};
+
+	context.subscriptions.push(
+		vscode.window.onDidChangeTextEditorSelection(e => updateDimming(e.textEditor)),
+		vscode.window.onDidChangeActiveTextEditor(updateDimming),
+		dimmedDecorations
+	);
+
 	context.subscriptions.push(toggleCmd);
 	context.subscriptions.push(foldedDecorations);
 }
@@ -71,5 +128,8 @@ export function activate(context: vscode.ExtensionContext) {
 export function deactivate() {
 	if (foldedDecorations) {
 		foldedDecorations.dispose();
+	}
+	if (dimmedDecorations) {
+		dimmedDecorations.dispose();
 	}
 }
