@@ -8,6 +8,7 @@ const ERB_RUBY_REGEX = /<%(?:=|-)?(.*?)%>/gs;
 
 let foldedDecorations: vscode.TextEditorDecorationType;
 let dimmedDecorations: vscode.TextEditorDecorationType;
+let modifierDecorations: vscode.TextEditorDecorationType;
 let foldedState = new WeakMap<vscode.TextEditor, Set<string>>();
 let isDimmingEnabled = false;
 
@@ -16,6 +17,10 @@ let isDimmingEnabled = false;
 export function activate(context: vscode.ExtensionContext) {
 	dimmedDecorations = vscode.window.createTextEditorDecorationType({
 		opacity: '0.25'
+	});
+
+	modifierDecorations = vscode.window.createTextEditorDecorationType({
+		backgroundColor: 'rgba(255, 255, 0, 0.2)'
 	});
 
 	foldedDecorations = vscode.window.createTextEditorDecorationType({
@@ -117,15 +122,75 @@ export function activate(context: vscode.ExtensionContext) {
 		editor.setDecorations(dimmedDecorations, decorations);
 	};
 
+	const updateModifierHighlights = (editor: vscode.TextEditor | undefined) => {
+		if (!editor || !editor.document.fileName.endsWith('.erb')) {
+			editor?.setDecorations(modifierDecorations, []);
+			return;
+		}
+
+		const cursorPosition = editor.selection.active;
+		const text = editor.document.getText();
+		const decorations: vscode.DecorationOptions[] = [];
+
+		let match;
+		CLASS_ATTR_REGEX.lastIndex = 0;
+		while ((match = CLASS_ATTR_REGEX.exec(text)) !== null) {
+			const classesStart = editor.document.positionAt(match.index + match[0].indexOf(match[1]));
+			const classesEnd = editor.document.positionAt(match.index + match[0].indexOf(match[1]) + match[1].length);
+			const classesRange = new vscode.Range(classesStart, classesEnd);
+
+			if (classesRange.contains(cursorPosition)) {
+				const classes = match[1].split(/\s+/);
+				const cursorOffset = editor.document.offsetAt(cursorPosition);
+				let currentClassStart = match.index + match[0].indexOf(match[1]);
+				const currentModifiers = new Set<string>();
+
+				// Find the class under cursor and get its modifiers
+				for (const className of classes) {
+					const classEnd = currentClassStart + className.length;
+					if (cursorOffset >= currentClassStart && cursorOffset <= classEnd) {
+						const modifierMatches = className.match(/([^:]+):/g);
+						if (modifierMatches) {
+							modifierMatches.forEach(m => currentModifiers.add(m.slice(0, -1)));
+						}
+					}
+					currentClassStart = classEnd + 1;
+				}
+
+				if (currentModifiers.size > 0) {
+					currentClassStart = match.index + match[0].indexOf(match[1]);
+					for (const className of classes) {
+						const classModifiers = className.match(/([^:]+):/g)?.map(m => m.slice(0, -1)) || [];
+						if (classModifiers.some(m => currentModifiers.has(m))) {
+							const startPos = editor.document.positionAt(currentClassStart);
+							const endPos = editor.document.positionAt(currentClassStart + className.length);
+							decorations.push({ range: new vscode.Range(startPos, endPos) });
+						}
+						currentClassStart += className.length + 1;
+					}
+				}
+			}
+		}
+
+		editor.setDecorations(modifierDecorations, decorations);
+	};
+
 	let toggleEmphasizedRubyCmd = vscode.commands.registerCommand('better-erb.toggleEmphasizedRuby', () => {
 		isDimmingEnabled = !isDimmingEnabled;
 		updateDimming(vscode.window.activeTextEditor);
 	});
 
 	context.subscriptions.push(
-		vscode.window.onDidChangeTextEditorSelection(e => updateDimming(e.textEditor)),
-		vscode.window.onDidChangeActiveTextEditor(updateDimming),
-		dimmedDecorations
+		vscode.window.onDidChangeTextEditorSelection(e => {
+			updateDimming(e.textEditor);
+			updateModifierHighlights(e.textEditor);
+		}),
+		vscode.window.onDidChangeActiveTextEditor(editor => {
+			updateDimming(editor);
+			updateModifierHighlights(editor);
+		}),
+		dimmedDecorations,
+		modifierDecorations
 	);
 
 	context.subscriptions.push(toggleCmd);
@@ -140,5 +205,8 @@ export function deactivate() {
 	}
 	if (dimmedDecorations) {
 		dimmedDecorations.dispose();
+	}
+	if (modifierDecorations) {
+		modifierDecorations.dispose();
 	}
 }
