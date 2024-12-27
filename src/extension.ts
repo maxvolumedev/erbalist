@@ -56,7 +56,8 @@ export function activate(context: vscode.ExtensionContext) {
 						before: {
 							contentText: FOLDED_CLASS_ICON,
 						}
-					}
+					},
+					hoverMessage: new vscode.MarkdownString(`${match[0]}${match[1]}`)
 				});
 			}
 		}
