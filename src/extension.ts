@@ -8,7 +8,16 @@ const ERB_RUBY_REGEX = /<%(?:=|-)?(.*?)%>/gs;
 
 let foldedDecorations: vscode.TextEditorDecorationType;
 let dimmedDecorations: vscode.TextEditorDecorationType;
-let modifierDecorations: vscode.TextEditorDecorationType;
+let modifierDecorationTypes: vscode.TextEditorDecorationType[] = [];
+let exactMatchDecoration: vscode.TextEditorDecorationType;
+const MODIFIER_COLORS = [
+	'rgba(255, 255, 0, 0.3)',   // yellow
+	'rgba(0, 255, 255, 0.3)',   // cyan
+	'rgba(255, 0, 255, 0.3)',   // magenta
+	'rgba(0, 255, 0, 0.3)',     // green
+	'rgba(255, 128, 0, 0.3)',   // orange
+];
+
 let foldedState = new WeakMap<vscode.TextEditor, Set<string>>();
 let isDimmingEnabled = false;
 
@@ -19,9 +28,25 @@ export function activate(context: vscode.ExtensionContext) {
 		opacity: '0.25'
 	});
 
-	modifierDecorations = vscode.window.createTextEditorDecorationType({
-		backgroundColor: 'rgba(255, 255, 0, 0.2)'
+	exactMatchDecoration = vscode.window.createTextEditorDecorationType({
+		border: '1px solid white',
+		borderRadius: '3px',
+		rangeBehavior: vscode.DecorationRangeBehavior.ClosedClosed
 	});
+
+	// Create decoration types for each color
+	modifierDecorationTypes = MODIFIER_COLORS.map(color => 
+		vscode.window.createTextEditorDecorationType({
+			backgroundColor: color,
+			border: '1px solid rgba(255, 255, 255, 0.3)',
+			borderRadius: '2px',
+			rangeBehavior: vscode.DecorationRangeBehavior.ClosedClosed,
+			overviewRulerLane: vscode.OverviewRulerLane.Right,
+			overviewRulerColor: color,
+			textDecoration: 'none !important',
+			opacity: '1 !important'
+		})
+	);
 
 	foldedDecorations = vscode.window.createTextEditorDecorationType({
 		textDecoration: 'none; display: none',
@@ -124,14 +149,19 @@ export function activate(context: vscode.ExtensionContext) {
 
 	const updateModifierHighlights = (editor: vscode.TextEditor | undefined) => {
 		if (!editor || !editor.document.fileName.endsWith('.erb')) {
-			editor?.setDecorations(modifierDecorations, []);
+			modifierDecorationTypes.forEach(d => editor?.setDecorations(d, []));
+			editor?.setDecorations(exactMatchDecoration, []);
 			return;
 		}
 
 		const cursorPosition = editor.selection.active;
 		const text = editor.document.getText();
-		const decorations: vscode.DecorationOptions[] = [];
+		const decorationsByModifier = new Map<string, vscode.DecorationOptions[]>();
+		const exactMatchDecorations: vscode.DecorationOptions[] = [];
+		let currentModifiers = new Set<string>();
+		let currentClassModifiers: string[] = [];
 
+		// First find the modifiers under cursor
 		let match;
 		CLASS_ATTR_REGEX.lastIndex = 0;
 		while ((match = CLASS_ATTR_REGEX.exec(text)) !== null) {
@@ -143,7 +173,6 @@ export function activate(context: vscode.ExtensionContext) {
 				const classes = match[1].split(/\s+/);
 				const cursorOffset = editor.document.offsetAt(cursorPosition);
 				let currentClassStart = match.index + match[0].indexOf(match[1]);
-				const currentModifiers = new Set<string>();
 
 				// Find the class under cursor and get its modifiers
 				for (const className of classes) {
@@ -151,28 +180,92 @@ export function activate(context: vscode.ExtensionContext) {
 					if (cursorOffset >= currentClassStart && cursorOffset <= classEnd) {
 						const modifierMatches = className.match(/([^:]+):/g);
 						if (modifierMatches) {
+							currentClassModifiers = modifierMatches.map(m => m.slice(0, -1));
+							currentClassModifiers.sort();
 							modifierMatches.forEach(m => currentModifiers.add(m.slice(0, -1)));
 						}
 					}
 					currentClassStart = classEnd + 1;
 				}
+				break;
+			}
+		}
 
-				if (currentModifiers.size > 0) {
-					currentClassStart = match.index + match[0].indexOf(match[1]);
-					for (const className of classes) {
-						const classModifiers = className.match(/([^:]+):/g)?.map(m => m.slice(0, -1)) || [];
-						if (classModifiers.some(m => currentModifiers.has(m))) {
-							const startPos = editor.document.positionAt(currentClassStart);
-							const endPos = editor.document.positionAt(currentClassStart + className.length);
-							decorations.push({ range: new vscode.Range(startPos, endPos) });
+		if (currentModifiers.size > 1) { // Only process exact matches if there are multiple modifiers
+			// Now process all class attributes to highlight matching modifiers
+			CLASS_ATTR_REGEX.lastIndex = 0;
+			while ((match = CLASS_ATTR_REGEX.exec(text)) !== null) {
+				let currentClassStart = match.index + match[0].indexOf(match[1]);
+				const classes = match[1].split(/\s+/);
+
+				for (const className of classes) {
+					let modifierStart = currentClassStart;
+					let remainingClass = className;
+					let modifierMatch;
+					const modifierRegex = /([^:]+):/g;
+					const classModifiers: string[] = [];
+					let firstModifierStart: number | null = null;
+					let lastModifierEnd: number | null = null;
+					
+					while ((modifierMatch = modifierRegex.exec(remainingClass)) !== null) {
+						const modifier = modifierMatch[1];
+						const startPos = modifierStart + modifierMatch.index;
+						const endPos = startPos + modifier.length;
+
+						if (firstModifierStart === null) {
+							firstModifierStart = startPos;
 						}
-						currentClassStart += className.length + 1;
+						lastModifierEnd = endPos;
+
+						if (currentModifiers.has(modifier)) {
+							if (!decorationsByModifier.has(modifier)) {
+								decorationsByModifier.set(modifier, []);
+							}
+							decorationsByModifier.get(modifier)!.push({ 
+								range: new vscode.Range(
+									editor.document.positionAt(startPos),
+									editor.document.positionAt(endPos)
+								) 
+							});
+						}
+
+						classModifiers.push(modifier);
 					}
+
+					// Check if this class has exactly the same modifiers
+					classModifiers.sort();
+					if (classModifiers.length > 1 && // Only add outline if there are multiple modifiers
+						classModifiers.length === currentClassModifiers.length &&
+						classModifiers.every((mod, i) => mod === currentClassModifiers[i]) &&
+						firstModifierStart !== null && lastModifierEnd !== null) {
+						exactMatchDecorations.push({ 
+							range: new vscode.Range(
+								editor.document.positionAt(firstModifierStart),
+								editor.document.positionAt(lastModifierEnd)
+							) 
+						});
+					}
+
+					currentClassStart += className.length + 1;
 				}
 			}
 		}
 
-		editor.setDecorations(modifierDecorations, decorations);
+		// Clear all decorations first
+		modifierDecorationTypes.forEach(d => editor.setDecorations(d, []));
+		editor.setDecorations(exactMatchDecoration, []);
+
+		// Apply decorations for each modifier with different colors
+		const modifiers = Array.from(decorationsByModifier.keys());
+		modifiers.forEach((modifier, index) => {
+			const decorationType = modifierDecorationTypes[index % modifierDecorationTypes.length];
+			editor.setDecorations(decorationType, decorationsByModifier.get(modifier)!);
+		});
+
+		// Apply exact match decorations only if there are multiple modifiers
+		if (currentModifiers.size > 1) {
+			editor.setDecorations(exactMatchDecoration, exactMatchDecorations);
+		}
 	};
 
 	let toggleEmphasizedRubyCmd = vscode.commands.registerCommand('better-erb.toggleEmphasizedRuby', () => {
@@ -190,7 +283,8 @@ export function activate(context: vscode.ExtensionContext) {
 			updateModifierHighlights(editor);
 		}),
 		dimmedDecorations,
-		modifierDecorations
+		exactMatchDecoration,
+		...modifierDecorationTypes
 	);
 
 	context.subscriptions.push(toggleCmd);
@@ -206,7 +300,8 @@ export function deactivate() {
 	if (dimmedDecorations) {
 		dimmedDecorations.dispose();
 	}
-	if (modifierDecorations) {
-		modifierDecorations.dispose();
+	if (exactMatchDecoration) {
+		exactMatchDecoration.dispose();
 	}
+	modifierDecorationTypes.forEach(d => d.dispose());
 }
