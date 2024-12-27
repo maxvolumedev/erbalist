@@ -9,6 +9,7 @@ const ERB_RUBY_REGEX = /<%(?:=|-)?(.*?)%>/gs;
 let foldedDecorations: vscode.TextEditorDecorationType;
 let dimmedDecorations: vscode.TextEditorDecorationType;
 let foldedState = new WeakMap<vscode.TextEditor, Set<string>>();
+let isDimmingEnabled = false;
 
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
@@ -70,7 +71,8 @@ export function activate(context: vscode.ExtensionContext) {
 	});
 
 	const updateDimming = (editor: vscode.TextEditor | undefined) => {
-		if (!editor || !editor.document.fileName.endsWith('.erb')) {
+		if (!editor || !editor.document.fileName.endsWith('.erb') || !isDimmingEnabled) {
+			editor?.setDecorations(dimmedDecorations, []);
 			return;
 		}
 
@@ -114,6 +116,11 @@ export function activate(context: vscode.ExtensionContext) {
 		editor.setDecorations(dimmedDecorations, decorations);
 	};
 
+	let toggleEmphasizedRubyCmd = vscode.commands.registerCommand('better-erb.toggleEmphasizedRuby', () => {
+		isDimmingEnabled = !isDimmingEnabled;
+		updateDimming(vscode.window.activeTextEditor);
+	});
+
 	context.subscriptions.push(
 		vscode.window.onDidChangeTextEditorSelection(e => updateDimming(e.textEditor)),
 		vscode.window.onDidChangeActiveTextEditor(updateDimming),
@@ -122,6 +129,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 	context.subscriptions.push(toggleCmd);
 	context.subscriptions.push(foldedDecorations);
+	context.subscriptions.push(toggleEmphasizedRubyCmd);
 }
 
 // This method is called when your extension is deactivated

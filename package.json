@@ -22,6 +22,10 @@
       {
         "command": "better-erb.toggleClassAttributes",
         "title": "ERB: Toggle Class Attributes"
+      },
+      {
+        "command": "better-erb.toggleEmphasizedRuby",
+        "title": "ERB: Toggle Emphasized Ruby"
       }
     ]
   },
