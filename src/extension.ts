@@ -1,6 +1,7 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
+import { initializeStimulusHighlighting, disposeStimulusHighlighting } from './stimulus';
 
 const CLASS_ATTR_REGEX = /class ?[=:] ?["']([^"']+)["']/g;
 const FOLDED_CLASS_ICON = '⋯';
@@ -274,6 +275,8 @@ export function activate(context: vscode.ExtensionContext) {
 		updateDimming(vscode.window.activeTextEditor);
 	});
 
+	initializeStimulusHighlighting(context);
+
 	context.subscriptions.push(
 		vscode.window.onDidChangeTextEditorSelection(e => {
 			updateDimming(e.textEditor);
@@ -305,4 +308,5 @@ export function deactivate() {
 		exactMatchDecoration.dispose();
 	}
 	modifierDecorationTypes.forEach(d => d.dispose());
+	disposeStimulusHighlighting();
 }
