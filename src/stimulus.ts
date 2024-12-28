@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 
 const CONTROLLER_ATTR_REGEX = /data-controller=["']([^"']+)["']/g;
-const STIMULUS_ATTR_REGEX = /data-(.+?)-target=["'][^"']*["']/g;
+const STIMULUS_ATTR_REGEX = /data-([^=\s"']+)-target=["'][^"']*["']/g;
 const ACTION_ATTR_REGEX = /data-action=["']([^"']*)["']/g;
 const ACTION_CONTROLLER_REGEX = /->([^#\s]+)#/g;
 
