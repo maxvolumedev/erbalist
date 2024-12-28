@@ -25,12 +25,12 @@ let isDimmingEnabled = false;
 // Your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
 	dimmedDecorations = vscode.window.createTextEditorDecorationType({
-		opacity: '0.25'
+		opacity: '0.5'
 	});
 
 	exactMatchDecoration = vscode.window.createTextEditorDecorationType({
-		border: '1px solid white',
-		borderRadius: '3px',
+		border: '1px solid  rgba(255, 255, 255, 0.5)',
+		borderRadius: '2px',
 		rangeBehavior: vscode.DecorationRangeBehavior.ClosedClosed
 	});
 
@@ -38,7 +38,7 @@ export function activate(context: vscode.ExtensionContext) {
 	modifierDecorationTypes = MODIFIER_COLORS.map(color => 
 		vscode.window.createTextEditorDecorationType({
 			backgroundColor: color,
-			border: '1px solid rgba(255, 255, 255, 0.3)',
+			// border: '1px solid rgba(255, 255, 255, 0.3)',
 			borderRadius: '2px',
 			rangeBehavior: vscode.DecorationRangeBehavior.ClosedClosed,
 			overviewRulerLane: vscode.OverviewRulerLane.Right,
@@ -191,7 +191,7 @@ export function activate(context: vscode.ExtensionContext) {
 			}
 		}
 
-		if (currentModifiers.size > 1) { // Only process exact matches if there are multiple modifiers
+		if (currentModifiers.size > 0) {
 			// Now process all class attributes to highlight matching modifiers
 			CLASS_ATTR_REGEX.lastIndex = 0;
 			while ((match = CLASS_ATTR_REGEX.exec(text)) !== null) {
@@ -232,9 +232,10 @@ export function activate(context: vscode.ExtensionContext) {
 						classModifiers.push(modifier);
 					}
 
-					// Check if this class has exactly the same modifiers
+					// Check if this class has exactly the same modifier set (only for multiple modifiers)
 					classModifiers.sort();
-					if (classModifiers.length > 1 && // Only add outline if there are multiple modifiers
+					if (currentModifiers.size > 1 && // Only add outline if there are multiple modifiers in current class
+						classModifiers.length > 1 && // Only add outline if target class has multiple modifiers
 						classModifiers.length === currentClassModifiers.length &&
 						classModifiers.every((mod, i) => mod === currentClassModifiers[i]) &&
 						firstModifierStart !== null && lastModifierEnd !== null) {
