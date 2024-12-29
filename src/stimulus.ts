@@ -1,11 +1,15 @@
 import * as vscode from 'vscode';
 
-const CONTROLLER_ATTR_REGEX = /data-controller=["']([^"']+)["']/g;
-const STIMULUS_ATTR_REGEX = /data-([^=\s"']+)-target=["'][^"']*["']/g;
-const ACTION_ATTR_REGEX = /data-action=["']([^"']*)["']/g;
+const CONTROLLER_ATTR_REGEX = /(?:data-controller=["']([^"']+)["']|data:\s*{[^}]*controller:\s*["']([^"']+)["'][^}]*})/g;
+const STIMULUS_ATTR_REGEX = /(?:data-([^=\s"']+)-(?:target|outlet|value)=["'][^"']*["']|data:\s*{[^}]*?([^:\s"']+?)_(?:target|outlet|value):\s*["'][^"']*["'][^}]*})/g;
+const ACTION_ATTR_REGEX = /(?:data-action=["']([^"']*)["']|data:\s*{[^}]*action:\s*["']([^"']*)["'][^}]*})/g;
 const ACTION_CONTROLLER_REGEX = /->([^#\s]+)#/g;
 
 let stimulusDecorations: vscode.TextEditorDecorationType;
+
+function normalizeControllerName(name: string): string {
+    return name.replace(/[-_]/g, '-').toLowerCase();
+}
 
 export function initializeStimulusHighlighting(context: vscode.ExtensionContext) {
     stimulusDecorations = vscode.window.createTextEditorDecorationType({
@@ -48,19 +52,25 @@ function updateStimulusHighlights(editor: vscode.TextEditor | undefined) {
         const range = new vscode.Range(startPos, endPos);
 
         if (range.contains(cursorPosition)) {
-            // Check if cursor is on the attribute name
-            const attrNameEnd = match.index + 'data-controller'.length;
+            const controllerValue = match[1] || match[2];
             const cursorOffset = editor.document.offsetAt(cursorPosition);
             
+            // Check if cursor is on the attribute name
+            const isHtmlFormat = match[0].startsWith('data-controller');
+            const isRubyFormat = match[0].includes('controller:');
+            const attrNameEnd = match.index + (isHtmlFormat ? 'data-controller'.length : 
+                                             isRubyFormat ? match[0].indexOf('controller:') + 'controller'.length : 0);
+            
             if (cursorOffset <= attrNameEnd) {
-                currentControllers = match[1].split(/\s+/);
+                currentControllers = controllerValue.split(/\s+/).map(normalizeControllerName);
                 break;
             }
 
             // Otherwise find which controller name the cursor is on
-            const controllers = match[1].split(/\s+/);
-            const valueStart = match.index + match[0].indexOf(match[1]);
+            const controllers = controllerValue.split(/\s+/);
+            const valueStart = match.index + match[0].indexOf(controllerValue);
             const valueOffset = cursorOffset - valueStart;
+            
             let pos = 0;
             for (const controller of controllers) {
                 if (valueOffset >= pos && valueOffset <= pos + controller.length) {
@@ -82,7 +92,7 @@ function updateStimulusHighlights(editor: vscode.TextEditor | undefined) {
             const range = new vscode.Range(startPos, endPos);
 
             if (range.contains(cursorPosition)) {
-                const value = match[1];
+                const value = match[1] || match[2];
                 const cursorOffset = editor.document.offsetAt(cursorPosition) - (match.index + match[0].indexOf(value));
                 
                 // Check if cursor is on the attribute name
@@ -122,7 +132,7 @@ function updateStimulusHighlights(editor: vscode.TextEditor | undefined) {
             const range = new vscode.Range(startPos, endPos);
 
             if (range.contains(cursorPosition)) {
-                currentControllers = [match[1]];
+                currentControllers = [normalizeControllerName(match[1] || match[2])];
                 break;
             }
         }
@@ -132,35 +142,41 @@ function updateStimulusHighlights(editor: vscode.TextEditor | undefined) {
         // Highlight all matching controller declarations
         CONTROLLER_ATTR_REGEX.lastIndex = 0;
         while ((match = CONTROLLER_ATTR_REGEX.exec(text)) !== null) {
-            const controllers = match[1].split(/\s+/);
-            if (controllers.some(c => currentControllers.includes(c))) {
+            const controllers = (match[1] || match[2]).split(/\s+/);
+            if (controllers.some(c => currentControllers.includes(normalizeControllerName(c)))) {
                 const startPos = editor.document.positionAt(match.index);
                 const endPos = editor.document.positionAt(match.index + match[0].length);
-                decorations.push({ range: new vscode.Range(startPos, endPos) });
+                decorations.push({ 
+                    range: new vscode.Range(startPos, endPos),
+                    hoverMessage: `Controllers: ${controllers.map(c => normalizeControllerName(c)).join(', ')}`
+                });
             }
         }
 
         // Highlight all matching stimulus attributes
         STIMULUS_ATTR_REGEX.lastIndex = 0;
         while ((match = STIMULUS_ATTR_REGEX.exec(text)) !== null) {
-            const controller = match[1];
-            if (currentControllers.includes(controller)) {
+            const controller = normalizeControllerName(match[1] || match[2]);
+            if (currentControllers.map(normalizeControllerName).includes(controller)) {
                 const startPos = editor.document.positionAt(match.index);
                 const endPos = editor.document.positionAt(match.index + match[0].length);
-                decorations.push({ range: new vscode.Range(startPos, endPos) });
+                decorations.push({ 
+                    range: new vscode.Range(startPos, endPos),
+                    hoverMessage: `Controller: ${controller}`
+                });
             }
         }
 
         // Highlight all matching action attributes
         ACTION_ATTR_REGEX.lastIndex = 0;
         while ((match = ACTION_ATTR_REGEX.exec(text)) !== null) {
-            const value = match[1];
+            const value = match[1] || match[2];
             let actionMatch;
             let hasMatch = false;
             ACTION_CONTROLLER_REGEX.lastIndex = 0;
             
             while ((actionMatch = ACTION_CONTROLLER_REGEX.exec(value)) !== null) {
-                if (currentControllers.includes(actionMatch[1])) {
+                if (currentControllers.map(normalizeControllerName).includes(normalizeControllerName(actionMatch[1]))) {
                     hasMatch = true;
                     break;
                 }
@@ -169,7 +185,15 @@ function updateStimulusHighlights(editor: vscode.TextEditor | undefined) {
             if (hasMatch) {
                 const startPos = editor.document.positionAt(match.index);
                 const endPos = editor.document.positionAt(match.index + match[0].length);
-                decorations.push({ range: new vscode.Range(startPos, endPos) });
+                const controllers = [];
+                ACTION_CONTROLLER_REGEX.lastIndex = 0;
+                while ((actionMatch = ACTION_CONTROLLER_REGEX.exec(value)) !== null) {
+                    controllers.push(normalizeControllerName(actionMatch[1]));
+                }
+                decorations.push({ 
+                    range: new vscode.Range(startPos, endPos),
+                    hoverMessage: `Controllers: ${controllers.join(', ')}`
+                });
             }
         }
     }
