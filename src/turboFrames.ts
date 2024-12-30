@@ -9,8 +9,16 @@ interface TurboFrame {
 
 export function initializeTurboFrameHighlighting(context: vscode.ExtensionContext) {
     frameDecoration = vscode.window.createTextEditorDecorationType({
-        backgroundColor: 'rgba(100, 100, 250, 0.1)',
+        backgroundColor: 'rgba(100, 100, 250, 0.15)',
         isWholeLine: true,
+        border: '1px solid rgba(100, 100, 250, 0.3)',
+        borderRadius: '3px',
+        overviewRulerColor: 'rgba(100, 100, 250, 0.8)',
+        overviewRulerLane: vscode.OverviewRulerLane.Right,
+        light: {
+            backgroundColor: 'rgba(65, 105, 225, 0.1)',
+            border: '1px solid rgba(65, 105, 225, 0.2)',
+        }
     });
 
     context.subscriptions.push(
@@ -31,12 +39,10 @@ async function updateFrameHighlight(editor: vscode.TextEditor | undefined) {
     ) || [];
 
     const cursorPos = editor.selection.active;
-    const currentLine = editor.document.lineAt(cursorPos.line).text;
     
-    // First check if the current line references a frame
-    const frameRef = extractFrameReference(currentLine);
+    // Check for frame references in current line and parent elements
+    const frameRef = findFrameReferenceInLineOrParents(editor, cursorPos.line);
     if (frameRef) {
-        // Find and highlight the referenced frame
         const frames = findTurboFrames(editor, foldingRanges);
         const targetFrame = frames.find(f => f.id === frameRef);
         if (targetFrame) {
@@ -48,6 +54,39 @@ async function updateFrameHighlight(editor: vscode.TextEditor | undefined) {
     // If no frame reference found, check if we're inside a frame
     const decorations = findContainingFrame(editor, cursorPos, foldingRanges);
     editor.setDecorations(frameDecoration, decorations);
+}
+
+function findFrameReferenceInLineOrParents(editor: vscode.TextEditor, lineNumber: number): string | null {
+    const text = editor.document.getText();
+    const lines = text.split('\n');
+    let currentLine = lineNumber;
+    let indentLevel = getIndentLevel(lines[currentLine]);
+    
+    // First check current line
+    const currentFrameRef = extractFrameReference(lines[currentLine]);
+    if (currentFrameRef) return currentFrameRef;
+    
+    // Then scan upwards through the document
+    while (currentLine >= 0) {
+        const line = lines[currentLine];
+        const currentIndent = getIndentLevel(line);
+        
+        // Only check lines with lower indent level (parent elements)
+        if (currentIndent < indentLevel) {
+            const frameRef = extractFrameReference(line);
+            if (frameRef) return frameRef;
+            indentLevel = currentIndent;
+        }
+        
+        currentLine--;
+    }
+    
+    return null;
+}
+
+function getIndentLevel(line: string): number {
+    const match = line.match(/^(\s*)/);
+    return match ? match[1].length : 0;
 }
 
 function findContainingFrame(editor: vscode.TextEditor, cursorPos: vscode.Position, foldingRanges: vscode.FoldingRange[]): vscode.Range[] {
