@@ -2,6 +2,7 @@
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
 import { initializeStimulusHighlighting, disposeStimulusHighlighting } from './stimulus';
+import { initializeTurboFrameHighlighting, disposeTurboFrameHighlighting } from './turboFrames';
 
 const CLASS_ATTR_REGEX = /class ?[=:] ?["']([^"']+)["']/g;
 const FOLDED_CLASS_ICON = '⋯';
@@ -276,6 +277,7 @@ export function activate(context: vscode.ExtensionContext) {
 	});
 
 	initializeStimulusHighlighting(context);
+	initializeTurboFrameHighlighting(context);
 
 	context.subscriptions.push(
 		vscode.window.onDidChangeTextEditorSelection(e => {
@@ -309,4 +311,5 @@ export function deactivate() {
 	}
 	modifierDecorationTypes.forEach(d => d.dispose());
 	disposeStimulusHighlighting();
+	disposeTurboFrameHighlighting();
 }
