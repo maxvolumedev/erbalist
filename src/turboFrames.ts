@@ -61,20 +61,49 @@ function findFrameReferenceInLineOrParents(editor: vscode.TextEditor, lineNumber
     const lines = text.split('\n');
     let currentLine = lineNumber;
     let indentLevel = getIndentLevel(lines[currentLine]);
+    let parentIndentLevel: number | null = null;
+    let openTag: string | null = null;
     
     // First check current line
     const currentFrameRef = extractFrameReference(lines[currentLine]);
-    if (currentFrameRef) return currentFrameRef;
+    if (currentFrameRef) {
+        parentIndentLevel = indentLevel;
+        // Extract the tag name if this is an opening tag
+        const tagMatch = lines[currentLine].match(/<(\w+)[^>]*data-turbo-frame/);
+        if (tagMatch) {
+            openTag = tagMatch[1];
+        }
+        return currentFrameRef;
+    }
+    
+    // Check if this is a closing tag of a previously found element
+    if (openTag && lines[currentLine].includes(`</${openTag}`)) {
+        return currentFrameRef;
+    }
     
     // Then scan upwards through the document
     while (currentLine >= 0) {
         const line = lines[currentLine];
         const currentIndent = getIndentLevel(line);
         
-        // Only check lines with lower indent level (parent elements)
-        if (currentIndent < indentLevel) {
+        // Check lines with lower indent level (parent elements)
+        // or same level as the parent (closing tags)
+        if (currentIndent < indentLevel || 
+            (parentIndentLevel !== null && currentIndent === parentIndentLevel)) {
             const frameRef = extractFrameReference(line);
-            if (frameRef) return frameRef;
+            if (frameRef) {
+                parentIndentLevel = currentIndent;
+                // Extract the tag name if this is an opening tag
+                const tagMatch = line.match(/<(\w+)[^>]*data-turbo-frame/);
+                if (tagMatch) {
+                    openTag = tagMatch[1];
+                }
+                return frameRef;
+            }
+            // Check if this is a closing tag of our element
+            if (openTag && line.includes(`</${openTag}`)) {
+                return frameRef;
+            }
             indentLevel = currentIndent;
         }
         
