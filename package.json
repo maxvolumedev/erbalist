@@ -26,6 +26,14 @@
       {
         "command": "better-erb.toggleEmphasizedRuby",
         "title": "ERB: Toggle Emphasized Ruby"
+      },
+      {
+        "command": "rails-buddy.foldSvg",
+        "title": "Rails Buddy: Fold SVG Tags"
+      },
+      {
+        "command": "rails-buddy.expandSvg",
+        "title": "Rails Buddy: Expand SVG Tags"
       }
     ]
   },

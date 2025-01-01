@@ -11,13 +11,11 @@ export function initializeTurboFrameHighlighting(context: vscode.ExtensionContex
     frameDecoration = vscode.window.createTextEditorDecorationType({
         backgroundColor: 'rgba(100, 100, 250, 0.15)',
         isWholeLine: true,
-        // border: '1px solid rgba(100, 100, 250, 0.3)',
         borderRadius: '3px',
         overviewRulerColor: 'rgba(100, 100, 250, 0.8)',
         overviewRulerLane: vscode.OverviewRulerLane.Right,
         light: {
             backgroundColor: 'rgba(65, 105, 225, 0.1)',
-            // border: '1px solid rgba(65, 105, 225, 0.2)',
         }
     });
 

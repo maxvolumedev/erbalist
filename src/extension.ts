@@ -3,6 +3,7 @@
 import * as vscode from 'vscode';
 import { initializeStimulusHighlighting, disposeStimulusHighlighting } from './stimulus';
 import { initializeTurboFrameHighlighting, disposeTurboFrameHighlighting } from './turboFrames';
+import { registerSvgFolding } from './svgFolding';
 
 const CLASS_ATTR_REGEX = /class ?[=:] ?["']([^"']+)["']/g;
 const FOLDED_CLASS_ICON = '⋯';
@@ -278,6 +279,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 	initializeStimulusHighlighting(context);
 	initializeTurboFrameHighlighting(context);
+	registerSvgFolding(context);
 
 	context.subscriptions.push(
 		vscode.window.onDidChangeTextEditorSelection(e => {
