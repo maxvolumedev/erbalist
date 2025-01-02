@@ -1,6 +1,6 @@
 {
   "name": "rails-buddy",
-  "displayName": "rails-buddy",
+  "displayName": "Rails Buddy",
   "description": "",
   "version": "0.0.1",
   "engines": {
@@ -39,7 +39,18 @@
         "command": "rails-buddy.toggleTurboFrames",
         "title": "Rails Buddy: Toggle Turbo Frame Highlighting"
       }
-    ]
+    ],
+    "configuration": {
+      "title": "Rails Buddy",
+      "properties": {
+        "railsBuddy.highlightMode": {
+          "type": "string",
+          "enum": ["always", "whenInBlock"],
+          "default": "whenInBlock",
+          "description": "Controls when Ruby code should be emphasized in ERB templates"
+        }
+      }
+    }
   },
   "scripts": {
     "vscode:prepublish": "yarn run package",

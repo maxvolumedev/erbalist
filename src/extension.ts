@@ -24,6 +24,8 @@ const MODIFIER_COLORS = [
 let foldedState = new WeakMap<vscode.TextEditor, Set<string>>();
 let isDimmingEnabled = false;
 
+type HighlightMode = 'always' | 'whenInBlock';
+
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
@@ -110,26 +112,30 @@ export function activate(context: vscode.ExtensionContext) {
 			return;
 		}
 
+		const highlightSetting = vscode.workspace.getConfiguration('railsBuddy').get<HighlightMode>('highlightMode', 'whenInBlock');
 		const cursorPosition = editor.selection.active;
 		const text = editor.document.getText();
 		const decorations: vscode.DecorationOptions[] = [];
-		let isInRubyBlock = false;
+		let isInRubyBlock = highlightSetting === 'always';
 
-		let match;
-		while ((match = ERB_RUBY_REGEX.exec(text)) !== null) {
-			const startPos = editor.document.positionAt(match.index);
-			const endPos = editor.document.positionAt(match.index + match[0].length);
-			const range = new vscode.Range(startPos, endPos);
+		if (!isInRubyBlock) {
+			let match;
+			while ((match = ERB_RUBY_REGEX.exec(text)) !== null) {
+				const startPos = editor.document.positionAt(match.index);
+				const endPos = editor.document.positionAt(match.index + match[0].length);
+				const range = new vscode.Range(startPos, endPos);
 
-			if (range.contains(cursorPosition)) {
-				isInRubyBlock = true;
-				break;
+				if (range.contains(cursorPosition)) {
+					isInRubyBlock = true;
+					break;
+				}
 			}
 		}
 
 		if (isInRubyBlock) {
 			let lastEnd = 0;
 			ERB_RUBY_REGEX.lastIndex = 0;
+			let match;
 			
 			while ((match = ERB_RUBY_REGEX.exec(text)) !== null) {
 				if (lastEnd < match.index) {
@@ -277,6 +283,37 @@ export function activate(context: vscode.ExtensionContext) {
 		updateDimming(vscode.window.activeTextEditor);
 	});
 
+	const config = vscode.workspace.getConfiguration('railsBuddy');
+	let highlightSetting = config.get<HighlightMode>('highlightMode', 'whenInBlock');
+
+	let disposable = vscode.commands.registerCommand('rails-buddy.toggleHighlight', () => {
+		const currentState = context.workspaceState.get('highlightEnabled', false);
+		context.workspaceState.update('highlightEnabled', !currentState);
+		
+		if (!currentState) {
+			// Turn highlighting on according to configuration
+			isDimmingEnabled = true;
+			updateDimming(vscode.window.activeTextEditor);
+		} else {
+			// Turn highlighting off
+			isDimmingEnabled = false;
+			updateDimming(vscode.window.activeTextEditor);
+		}
+	});
+
+	// Watch for configuration changes
+	context.subscriptions.push(
+		vscode.workspace.onDidChangeConfiguration(e => {
+			if (e.affectsConfiguration('railsBuddy.highlightMode')) {
+				highlightSetting = vscode.workspace.getConfiguration('railsBuddy').get<HighlightMode>('highlightMode', 'whenInBlock');
+				// Re-apply highlighting if currently enabled
+				if (context.workspaceState.get('highlightEnabled', false)) {
+					updateDimming(vscode.window.activeTextEditor);
+				}
+			}
+		})
+	);
+
 	initializeStimulusHighlighting(context);
 	initializeTurboFrameHighlighting(context);
 	registerTurboFrameCommands(context);
@@ -299,6 +336,7 @@ export function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(toggleCmd);
 	context.subscriptions.push(foldedDecorations);
 	context.subscriptions.push(toggleEmphasizedRubyCmd);
+	context.subscriptions.push(disposable);
 }
 
 // This method is called when your extension is deactivated
