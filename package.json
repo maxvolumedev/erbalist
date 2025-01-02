@@ -1,6 +1,6 @@
 {
-  "name": "better-erb",
-  "displayName": "better-erb",
+  "name": "rails-buddy",
+  "displayName": "rails-buddy",
   "description": "",
   "version": "0.0.1",
   "engines": {
@@ -16,16 +16,16 @@
   "contributes": {
     "commands": [
       {
-        "command": "better-erb.helloWorld",
+        "command": "rails-buddy.helloWorld",
         "title": "Hello World"
       },
       {
-        "command": "better-erb.toggleClassAttributes",
-        "title": "ERB: Toggle Class Attributes"
+        "command": "rails-buddy.toggleClassAttributes",
+        "title": "Rails Buddy: Toggle Class Attributes"
       },
       {
-        "command": "better-erb.toggleEmphasizedRuby",
-        "title": "ERB: Toggle Emphasized Ruby"
+        "command": "rails-buddy.toggleEmphasizedRuby",
+        "title": "Rails Buddy: Toggle Emphasized Ruby"
       },
       {
         "command": "rails-buddy.foldSvg",
@@ -34,6 +34,10 @@
       {
         "command": "rails-buddy.expandSvg",
         "title": "Rails Buddy: Expand SVG Tags"
+      },
+      {
+        "command": "rails-buddy.toggleTurboFrames",
+        "title": "Rails Buddy: Toggle Turbo Frame Highlighting"
       }
     ]
   },

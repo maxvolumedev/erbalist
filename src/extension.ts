@@ -2,7 +2,7 @@
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
 import { initializeStimulusHighlighting, disposeStimulusHighlighting } from './stimulus';
-import { initializeTurboFrameHighlighting, disposeTurboFrameHighlighting } from './turboFrames';
+import { initializeTurboFrameHighlighting, disposeTurboFrameHighlighting, registerTurboFrameCommands } from './turboFrames';
 import { registerSvgFolding } from './svgFolding';
 
 const CLASS_ATTR_REGEX = /class ?[=:] ?["']([^"']+)["']/g;
@@ -62,7 +62,7 @@ export function activate(context: vscode.ExtensionContext) {
 		}
 	});
 
-	let toggleCmd = vscode.commands.registerCommand('better-erb.toggleClassAttributes', () => {
+	let toggleCmd = vscode.commands.registerCommand('rails-buddy.toggleClassAttributes', () => {
 		const editor = vscode.window.activeTextEditor;
 		if (!editor || !editor.document.fileName.endsWith('.erb')) {
 			return;
@@ -272,13 +272,14 @@ export function activate(context: vscode.ExtensionContext) {
 		}
 	};
 
-	let toggleEmphasizedRubyCmd = vscode.commands.registerCommand('better-erb.toggleEmphasizedRuby', () => {
+	let toggleEmphasizedRubyCmd = vscode.commands.registerCommand('rails-buddy.toggleEmphasizedRuby', () => {
 		isDimmingEnabled = !isDimmingEnabled;
 		updateDimming(vscode.window.activeTextEditor);
 	});
 
 	initializeStimulusHighlighting(context);
 	initializeTurboFrameHighlighting(context);
+	registerTurboFrameCommands(context);
 	registerSvgFolding(context);
 
 	context.subscriptions.push(

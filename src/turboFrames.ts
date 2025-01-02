@@ -1,5 +1,7 @@
 import * as vscode from 'vscode';
 
+let isHighlightingEnabled = true;
+let activeDecorations: vscode.TextEditorDecorationType[] = [];
 let frameDecoration: vscode.TextEditorDecorationType;
 
 interface TurboFrame {
@@ -27,7 +29,10 @@ export function initializeTurboFrameHighlighting(context: vscode.ExtensionContex
 }
 
 async function updateFrameHighlight(editor: vscode.TextEditor | undefined) {
-    if (!editor?.document || !editor.document.fileName.endsWith('.erb')) {
+    if (!editor?.document || !editor.document.fileName.endsWith('.erb') || !isHighlightingEnabled) {
+        if (frameDecoration && editor) {
+            editor.setDecorations(frameDecoration, []);
+        }
         return;
     }
 
@@ -203,4 +208,13 @@ export function disposeTurboFrameHighlighting() {
     if (frameDecoration) {
         frameDecoration.dispose();
     }
+}
+
+export function registerTurboFrameCommands(context: vscode.ExtensionContext) {
+    context.subscriptions.push(
+        vscode.commands.registerCommand('rails-buddy.toggleTurboFrames', () => {
+            isHighlightingEnabled = !isHighlightingEnabled;
+            updateFrameHighlight(vscode.window.activeTextEditor);
+        })
+    );
 } 

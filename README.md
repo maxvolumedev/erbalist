@@ -1,6 +1,6 @@
-# better-erb README
+# rails-buddy README
 
-This is the README for your extension "better-erb". After writing up a brief description, we recommend including the following sections.
+This is the README for your extension Rails Buddy. After writing up a brief description, we recommend including the following sections.
 
 ## Features
 
