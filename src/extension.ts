@@ -21,14 +21,29 @@ const MODIFIER_COLORS = [
 	'rgba(255, 128, 0, 0.3)',   // orange
 ];
 
+interface ToggleStates {
+	emphasizeRuby: boolean;
+	// We'll add other toggle states here later
+}
+
 let foldedState = new WeakMap<vscode.TextEditor, Set<string>>();
 let isDimmingEnabled = false;
+let globalEmphasizeState = false;
 
 type HighlightMode = 'always' | 'whenInBlock';
 
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
+	const config = vscode.workspace.getConfiguration('railsBuddy');
+	const rememberToggles = config.get<string>('rememberToggles', 'Never');
+
+	if (rememberToggles === 'Always') {
+		const savedStates = context.globalState.get<ToggleStates>('toggleStates', { emphasizeRuby: false });
+		globalEmphasizeState = savedStates.emphasizeRuby;
+		isDimmingEnabled = globalEmphasizeState;
+	}
+
 	dimmedDecorations = vscode.window.createTextEditorDecorationType({
 		opacity: '0.5'
 	});
@@ -112,7 +127,7 @@ export function activate(context: vscode.ExtensionContext) {
 			return;
 		}
 
-		const highlightSetting = vscode.workspace.getConfiguration('railsBuddy').get<HighlightMode>('highlightMode', 'whenInBlock');
+		let highlightSetting = vscode.workspace.getConfiguration('railsBuddy').get<HighlightMode>('highlightMode', 'whenInBlock');
 		const cursorPosition = editor.selection.active;
 		const text = editor.document.getText();
 		const decorations: vscode.DecorationOptions[] = [];
@@ -279,12 +294,28 @@ export function activate(context: vscode.ExtensionContext) {
 	};
 
 	let toggleEmphasizedRubyCmd = vscode.commands.registerCommand('rails-buddy.toggleEmphasizedRuby', () => {
-		isDimmingEnabled = !isDimmingEnabled;
-		updateDimming(vscode.window.activeTextEditor);
+		const config = vscode.workspace.getConfiguration('railsBuddy');
+		const rememberToggles = config.get<string>('rememberToggles', 'Never');
+
+		globalEmphasizeState = !globalEmphasizeState;
+		isDimmingEnabled = globalEmphasizeState;
+
+		if (rememberToggles === 'Always') {
+			// Update all visible editors
+			vscode.window.visibleTextEditors.forEach(editor => {
+				updateDimming(editor);
+			});
+
+			// Save the state globally
+			const savedStates = context.globalState.get<ToggleStates>('toggleStates', { emphasizeRuby: false });
+			context.globalState.update('toggleStates', { ...savedStates, emphasizeRuby: globalEmphasizeState });
+		} else {
+			// Just update the current editor
+			updateDimming(vscode.window.activeTextEditor);
+		}
 	});
 
-	const config = vscode.workspace.getConfiguration('railsBuddy');
-	let highlightSetting = config.get<HighlightMode>('highlightMode', 'whenInBlock');
+	let highlightSetting = vscode.workspace.getConfiguration('railsBuddy').get<HighlightMode>('highlightMode', 'whenInBlock');
 
 	let disposable = vscode.commands.registerCommand('rails-buddy.toggleHighlight', () => {
 		const currentState = context.workspaceState.get('highlightEnabled', false);
@@ -325,6 +356,13 @@ export function activate(context: vscode.ExtensionContext) {
 			updateModifierHighlights(e.textEditor);
 		}),
 		vscode.window.onDidChangeActiveTextEditor(editor => {
+			const config = vscode.workspace.getConfiguration('railsBuddy');
+			const rememberToggles = config.get<string>('rememberToggles', 'Never');
+
+			if (rememberToggles === 'Always') {
+				isDimmingEnabled = globalEmphasizeState;
+			}
+			
 			updateDimming(editor);
 			updateModifierHighlights(editor);
 		}),
