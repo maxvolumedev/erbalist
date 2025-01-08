@@ -1,16 +1,16 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
+import * as types from "./types";
 import { initializeStimulusHighlighting, disposeStimulusHighlighting } from './stimulus';
 import { initializeTurboFrameHighlighting, disposeTurboFrameHighlighting, registerTurboFrameCommands } from './turboFrames';
 import { registerSvgFolding } from './svgFolding';
+import * as ruby from './emphasizeRuby';
 
 const CLASS_ATTR_REGEX = /class ?[=:] ?["']([^"']+)["']/g;
 const FOLDED_CLASS_ICON = '⋯';
-const ERB_RUBY_REGEX = /<%(?:=|-)?(.*?)%>/gs;
 
 let foldedDecorations: vscode.TextEditorDecorationType;
-let dimmedDecorations: vscode.TextEditorDecorationType;
 let modifierDecorationTypes: vscode.TextEditorDecorationType[] = [];
 let exactMatchDecoration: vscode.TextEditorDecorationType;
 const MODIFIER_COLORS = [
@@ -21,32 +21,11 @@ const MODIFIER_COLORS = [
 	'rgba(255, 128, 0, 0.3)',   // orange
 ];
 
-interface ToggleStates {
-	emphasizeRuby: boolean;
-	// We'll add other toggle states here later
-}
-
 let foldedState = new WeakMap<vscode.TextEditor, Set<string>>();
-let isDimmingEnabled = false;
-let globalEmphasizeState = false;
-
-type HighlightMode = 'always' | 'whenInBlock';
 
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
-export function activate(context: vscode.ExtensionContext) {
-	const config = vscode.workspace.getConfiguration('railsBuddy');
-	const rememberToggles = config.get<string>('rememberToggles', 'Never');
-
-	if (rememberToggles === 'Always') {
-		const savedStates = context.globalState.get<ToggleStates>('toggleStates', { emphasizeRuby: false });
-		globalEmphasizeState = savedStates.emphasizeRuby;
-		isDimmingEnabled = globalEmphasizeState;
-	}
-
-	dimmedDecorations = vscode.window.createTextEditorDecorationType({
-		opacity: '0.5'
-	});
+export function activate(context: vscode.ExtensionContext) {	
 
 	exactMatchDecoration = vscode.window.createTextEditorDecorationType({
 		border: '1px solid  rgba(255, 255, 255, 0.5)',
@@ -120,56 +99,6 @@ export function activate(context: vscode.ExtensionContext) {
 			editor.setDecorations(foldedDecorations, []);
 		}
 	});
-
-	const updateDimming = (editor: vscode.TextEditor | undefined) => {
-		if (!editor || !editor.document.fileName.endsWith('.erb') || !isDimmingEnabled) {
-			editor?.setDecorations(dimmedDecorations, []);
-			return;
-		}
-
-		let highlightSetting = vscode.workspace.getConfiguration('railsBuddy').get<HighlightMode>('highlightMode', 'whenInBlock');
-		const cursorPosition = editor.selection.active;
-		const text = editor.document.getText();
-		const decorations: vscode.DecorationOptions[] = [];
-		let isInRubyBlock = highlightSetting === 'always';
-
-		if (!isInRubyBlock) {
-			let match;
-			while ((match = ERB_RUBY_REGEX.exec(text)) !== null) {
-				const startPos = editor.document.positionAt(match.index);
-				const endPos = editor.document.positionAt(match.index + match[0].length);
-				const range = new vscode.Range(startPos, endPos);
-
-				if (range.contains(cursorPosition)) {
-					isInRubyBlock = true;
-					break;
-				}
-			}
-		}
-
-		if (isInRubyBlock) {
-			let lastEnd = 0;
-			ERB_RUBY_REGEX.lastIndex = 0;
-			let match;
-			
-			while ((match = ERB_RUBY_REGEX.exec(text)) !== null) {
-				if (lastEnd < match.index) {
-					const startPos = editor.document.positionAt(lastEnd);
-					const endPos = editor.document.positionAt(match.index);
-					decorations.push({ range: new vscode.Range(startPos, endPos) });
-				}
-				lastEnd = match.index + match[0].length;
-			}
-
-			if (lastEnd < text.length) {
-				const startPos = editor.document.positionAt(lastEnd);
-				const endPos = editor.document.positionAt(text.length);
-				decorations.push({ range: new vscode.Range(startPos, endPos) });
-			}
-		}
-
-		editor.setDecorations(dimmedDecorations, decorations);
-	};
 
 	const updateModifierHighlights = (editor: vscode.TextEditor | undefined) => {
 		if (!editor || !editor.document.fileName.endsWith('.erb')) {
@@ -293,57 +222,7 @@ export function activate(context: vscode.ExtensionContext) {
 		}
 	};
 
-	let toggleEmphasizedRubyCmd = vscode.commands.registerCommand('rails-buddy.toggleEmphasizedRuby', () => {
-		const config = vscode.workspace.getConfiguration('railsBuddy');
-		const rememberToggles = config.get<string>('rememberToggles', 'Never');
-
-		globalEmphasizeState = !globalEmphasizeState;
-		isDimmingEnabled = globalEmphasizeState;
-
-		if (rememberToggles === 'Always') {
-			// Update all visible editors
-			vscode.window.visibleTextEditors.forEach(editor => {
-				updateDimming(editor);
-			});
-
-			// Save the state globally
-			const savedStates = context.globalState.get<ToggleStates>('toggleStates', { emphasizeRuby: false });
-			context.globalState.update('toggleStates', { ...savedStates, emphasizeRuby: globalEmphasizeState });
-		} else {
-			// Just update the current editor
-			updateDimming(vscode.window.activeTextEditor);
-		}
-	});
-
-	let highlightSetting = vscode.workspace.getConfiguration('railsBuddy').get<HighlightMode>('highlightMode', 'whenInBlock');
-
-	let disposable = vscode.commands.registerCommand('rails-buddy.toggleHighlight', () => {
-		const currentState = context.workspaceState.get('highlightEnabled', false);
-		context.workspaceState.update('highlightEnabled', !currentState);
-		
-		if (!currentState) {
-			// Turn highlighting on according to configuration
-			isDimmingEnabled = true;
-			updateDimming(vscode.window.activeTextEditor);
-		} else {
-			// Turn highlighting off
-			isDimmingEnabled = false;
-			updateDimming(vscode.window.activeTextEditor);
-		}
-	});
-
-	// Watch for configuration changes
-	context.subscriptions.push(
-		vscode.workspace.onDidChangeConfiguration(e => {
-			if (e.affectsConfiguration('railsBuddy.highlightMode')) {
-				highlightSetting = vscode.workspace.getConfiguration('railsBuddy').get<HighlightMode>('highlightMode', 'whenInBlock');
-				// Re-apply highlighting if currently enabled
-				if (context.workspaceState.get('highlightEnabled', false)) {
-					updateDimming(vscode.window.activeTextEditor);
-				}
-			}
-		})
-	);
+  ruby.activate(context);
 
 	initializeStimulusHighlighting(context);
 	initializeTurboFrameHighlighting(context);
@@ -352,29 +231,17 @@ export function activate(context: vscode.ExtensionContext) {
 
 	context.subscriptions.push(
 		vscode.window.onDidChangeTextEditorSelection(e => {
-			updateDimming(e.textEditor);
 			updateModifierHighlights(e.textEditor);
 		}),
-		vscode.window.onDidChangeActiveTextEditor(editor => {
-			const config = vscode.workspace.getConfiguration('railsBuddy');
-			const rememberToggles = config.get<string>('rememberToggles', 'Never');
-
-			if (rememberToggles === 'Always') {
-				isDimmingEnabled = globalEmphasizeState;
-			}
-			
-			updateDimming(editor);
+		vscode.window.onDidChangeActiveTextEditor(editor => {			
 			updateModifierHighlights(editor);
 		}),
-		dimmedDecorations,
 		exactMatchDecoration,
 		...modifierDecorationTypes
 	);
 
 	context.subscriptions.push(toggleCmd);
-	context.subscriptions.push(foldedDecorations);
-	context.subscriptions.push(toggleEmphasizedRubyCmd);
-	context.subscriptions.push(disposable);
+	context.subscriptions.push(foldedDecorations);	
 }
 
 // This method is called when your extension is deactivated
@@ -382,13 +249,11 @@ export function deactivate() {
 	if (foldedDecorations) {
 		foldedDecorations.dispose();
 	}
-	if (dimmedDecorations) {
-		dimmedDecorations.dispose();
-	}
 	if (exactMatchDecoration) {
 		exactMatchDecoration.dispose();
 	}
 	modifierDecorationTypes.forEach(d => d.dispose());
+  ruby.deactivate();
 	disposeStimulusHighlighting();
 	disposeTurboFrameHighlighting();
 }
