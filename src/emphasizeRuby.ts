@@ -1,7 +1,6 @@
 import * as vscode from 'vscode';
 import * as types from "./types";
 
-
 let isDimmingEnabled = false;
 let globalEmphasizeState = false;
 
