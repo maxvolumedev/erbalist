@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 
-export function registerSvgFolding(context: vscode.ExtensionContext) {
+export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(
         vscode.commands.registerCommand('rails-buddy.foldSvg', foldSvgTags),
         vscode.commands.registerCommand('rails-buddy.expandSvg', expandSvgTags)
@@ -47,3 +47,5 @@ async function applyFolds(editor: vscode.TextEditor, ranges: vscode.FoldingRange
         selectionLines: ranges.map(range => range.start)
     });
 } 
+
+export function deactivate() {}

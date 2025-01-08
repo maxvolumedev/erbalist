@@ -9,7 +9,7 @@ interface TurboFrame {
     range: vscode.Range;
 }
 
-export function initializeTurboFrameHighlighting(context: vscode.ExtensionContext) {
+export function activate(context: vscode.ExtensionContext) {
     frameDecoration = vscode.window.createTextEditorDecorationType({
         backgroundColor: 'rgba(100, 100, 250, 0.15)',
         isWholeLine: true,
@@ -26,6 +26,8 @@ export function initializeTurboFrameHighlighting(context: vscode.ExtensionContex
         vscode.window.onDidChangeActiveTextEditor(editor => updateFrameHighlight(editor)),
         frameDecoration
     );
+
+    registerCommands(context);
 }
 
 async function updateFrameHighlight(editor: vscode.TextEditor | undefined) {
@@ -204,13 +206,13 @@ function extractFrameReference(line: string): string | null {
     return null;
 }
 
-export function disposeTurboFrameHighlighting() {
+export function deactivate() {
     if (frameDecoration) {
         frameDecoration.dispose();
     }
 }
 
-export function registerTurboFrameCommands(context: vscode.ExtensionContext) {
+function registerCommands(context: vscode.ExtensionContext) {
     context.subscriptions.push(
         vscode.commands.registerCommand('rails-buddy.toggleTurboFrames', () => {
             isHighlightingEnabled = !isHighlightingEnabled;

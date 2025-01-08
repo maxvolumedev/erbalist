@@ -11,7 +11,7 @@ function normalizeControllerName(name: string): string {
     return name.replace(/[-_]/g, '-').toLowerCase();
 }
 
-export function initializeStimulusHighlighting(context: vscode.ExtensionContext) {
+export function activate(context: vscode.ExtensionContext) {
     stimulusDecorations = vscode.window.createTextEditorDecorationType({
         backgroundColor: 'rgba(100, 100, 255, 0.3)',
         border: '1px solid rgba(255, 255, 255, 0.5)',
@@ -201,7 +201,7 @@ function updateStimulusHighlights(editor: vscode.TextEditor | undefined) {
     editor.setDecorations(stimulusDecorations, decorations);
 }
 
-export function disposeStimulusHighlighting() {
+export function deactivate() {
     if (stimulusDecorations) {
         stimulusDecorations.dispose();
     }
