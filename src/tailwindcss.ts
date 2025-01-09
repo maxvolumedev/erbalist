@@ -15,7 +15,15 @@ const MODIFIER_COLORS = [
 	'rgba(255, 128, 0, 0.3)',   // orange
 ];
 
-let foldedState = new WeakMap<vscode.TextEditor, boolean>();
+const foldedState = new Map<string, boolean>();
+
+function getFoldState(editor: vscode.TextEditor): boolean {
+	return foldedState.get(editor.document.uri.toString()) || false;
+}
+
+function setFoldState(editor: vscode.TextEditor, state: boolean) {
+	foldedState.set(editor.document.uri.toString(), state);
+}
 
 function unfoldClassAttributes(editor: vscode.TextEditor) {
 	editor.setDecorations(foldedDecorations, []);
@@ -168,28 +176,19 @@ function updateModifierHighlights(editor: vscode.TextEditor | undefined) {
 
 function toggleClassAttributes(editor: vscode.TextEditor | undefined) {
 	if (!editor) { return; }
-
-	let foldingEnabled = foldedState.get(editor) || false;
-  foldingEnabled = !foldingEnabled;
-  foldedState.set(editor, foldingEnabled);
-
-  applyFolding(editor, foldingEnabled);
+	setFoldState(editor, !getFoldState(editor));
+	applyFolding(editor);
 }
 
-function applyFolding(editor: vscode.TextEditor | undefined, foldingEnabled: boolean) {
-	if (!editor) { return }
-
-  // add debug output for foldingEnabled
-  console.log('foldingEnabled', foldingEnabled);
-
-	if (foldingEnabled) {
-		foldClassAttributes(editor);
-	} else {
-		unfoldClassAttributes(editor);
-	}
+function applyFolding(editor: vscode.TextEditor | undefined) {
+	if (!editor) { return; }
+	getFoldState(editor) ? foldClassAttributes(editor) : unfoldClassAttributes(editor);
 }
 
-export function activate(context: vscode.ExtensionContext) {	
+let context: vscode.ExtensionContext;
+
+export function activate(extensionContext: vscode.ExtensionContext) {
+	context = extensionContext;
 
 	exactMatchDecoration = vscode.window.createTextEditorDecorationType({
 		border: '1px solid  rgba(255, 255, 255, 0.5)',
@@ -232,7 +231,7 @@ export function activate(context: vscode.ExtensionContext) {
 		}),
 		vscode.window.onDidChangeActiveTextEditor(editor => {		
       if (editor)	{
-        applyFolding(editor, foldedState.get(editor) || false);        
+        applyFolding(editor);        
         updateModifierHighlights(editor);
       }
 		}),
