@@ -1,7 +1,6 @@
 import * as vscode from 'vscode';
 
 let isHighlightingEnabled = true;
-let activeDecorations: vscode.TextEditorDecorationType[] = [];
 let frameDecoration: vscode.TextEditorDecorationType;
 
 interface TurboFrame {
