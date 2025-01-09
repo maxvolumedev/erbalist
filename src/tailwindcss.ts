@@ -15,13 +15,13 @@ const MODIFIER_COLORS = [
 	'rgba(255, 128, 0, 0.3)',   // orange
 ];
 
-let foldedState = new WeakMap<vscode.TextEditor, Set<string>>();
+let foldedState = new WeakMap<vscode.TextEditor, boolean>();
 
-function updateFolding(editor: vscode.TextEditor | undefined, ranges: Set<string>) {
-	if (!editor || !editor.document.fileName.endsWith('.erb')) {
-		return;
-	}
+function unfoldClassAttributes(editor: vscode.TextEditor) {
+	editor.setDecorations(foldedDecorations, []);
+}
 
+function foldClassAttributes(editor: vscode.TextEditor) {
 	const decorations: vscode.DecorationOptions[] = [];
 	const text = editor.document.getText();
 	let match;
@@ -31,30 +31,25 @@ function updateFolding(editor: vscode.TextEditor | undefined, ranges: Set<string
 		const startPos = editor.document.positionAt(match.index);
 		const endPos = editor.document.positionAt(match.index + match[0].length);
 		const range = new vscode.Range(startPos, endPos);
-		const key = range.start.line.toString() + ':' + range.start.character;
 
-		if (ranges.has(key)) {
-			decorations.push({
-				range,
-				renderOptions: {
-					before: {
-						contentText: FOLDED_CLASS_ICON,
-					}
-				},
-				hoverMessage: new vscode.MarkdownString(`${match[0]}${match[1]}`)
-			});
-		}
+    decorations.push({
+      range,
+      renderOptions: {
+        before: {
+          contentText: FOLDED_CLASS_ICON,
+        }
+      },
+      hoverMessage: new vscode.MarkdownString(`${match[0]}${match[1]}`)
+    });
 	}
 
 	editor.setDecorations(foldedDecorations, decorations);
 }
 
 function updateModifierHighlights(editor: vscode.TextEditor | undefined) {
-	if (!editor || !editor.document.fileName.endsWith('.erb')) {
-		modifierDecorationTypes.forEach(d => editor?.setDecorations(d, []));
-		editor?.setDecorations(exactMatchDecoration, []);
-		return;
-	}
+	if (!editor) {
+    return;
+  }
 
 	const text = editor.document.getText();
 	const cursorPosition = editor.selection.active;
@@ -172,32 +167,25 @@ function updateModifierHighlights(editor: vscode.TextEditor | undefined) {
 }
 
 function toggleClassAttributes(editor: vscode.TextEditor | undefined) {
-	if (!editor || !editor.document.fileName.endsWith('.erb')) {
-		return;
-	}
+	if (!editor) { return; }
 
-	const currentFoldedRanges = foldedState.get(editor) || new Set<string>();
-	const newFoldedRanges = new Set<string>();
-	const text = editor.document.getText();
-	let match;
+	let foldingEnabled = foldedState.get(editor) || false;
+  foldingEnabled = !foldingEnabled;
+  foldedState.set(editor, foldingEnabled);
 
-	while ((match = CLASS_ATTR_REGEX.exec(text)) !== null) {
-		const startPos = editor.document.positionAt(match.index);
-		const endPos = editor.document.positionAt(match.index + match[0].length);
-		const range = new vscode.Range(startPos, endPos);
-		const key = range.start.line.toString() + ':' + range.start.character;
+  applyFolding(editor, foldingEnabled);
+}
 
-		if (!currentFoldedRanges.has(key)) {
-			newFoldedRanges.add(key);
-		}
-	}
+function applyFolding(editor: vscode.TextEditor | undefined, foldingEnabled: boolean) {
+	if (!editor) { return }
 
-	if (newFoldedRanges.size > 0) {
-		foldedState.set(editor, newFoldedRanges);
-		updateFolding(editor, newFoldedRanges);
+  // add debug output for foldingEnabled
+  console.log('foldingEnabled', foldingEnabled);
+
+	if (foldingEnabled) {
+		foldClassAttributes(editor);
 	} else {
-		foldedState.delete(editor);
-		editor.setDecorations(foldedDecorations, []);
+		unfoldClassAttributes(editor);
 	}
 }
 
@@ -244,9 +232,9 @@ export function activate(context: vscode.ExtensionContext) {
 		}),
 		vscode.window.onDidChangeActiveTextEditor(editor => {		
       if (editor)	{
-        updateFolding(editor, foldedState.get(editor) || new Set<string>());
-        
-			updateModifierHighlights(editor);
+        applyFolding(editor, foldedState.get(editor) || false);        
+        updateModifierHighlights(editor);
+      }
 		}),
 		exactMatchDecoration,
 		...modifierDecorationTypes
