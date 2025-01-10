@@ -16,6 +16,7 @@ const MODIFIER_COLORS = [
 ];
 
 const foldedState = new Map<string, boolean>();
+const temporarilyExpanded = new Map<string, vscode.Range>();
 
 function getFoldState(editor: vscode.TextEditor): boolean {
 	return foldedState.get(editor.document.uri.toString()) || false;
@@ -40,15 +41,27 @@ function foldClassAttributes(editor: vscode.TextEditor) {
 		const endPos = editor.document.positionAt(match.index + match[0].length);
 		const range = new vscode.Range(startPos, endPos);
 
-    decorations.push({
-      range,
-      renderOptions: {
-        before: {
-          contentText: FOLDED_CLASS_ICON,
-        }
-      },
-      hoverMessage: new vscode.MarkdownString(`${match[0]}${match[1]}`)
-    });
+		// Skip if temporarily expanded
+		const editorKey = editor.document.uri.toString();
+		if (temporarilyExpanded.get(editorKey)?.isEqual(range)) {
+			continue;
+		}
+
+		const mdString = new vscode.MarkdownString(`[Edit](command:rails-buddy.temporarilyExpand?${encodeURIComponent(JSON.stringify({
+			start: { line: range.start.line, character: range.start.character },
+			end: { line: range.end.line, character: range.end.character }
+		}))}) ${match[0]}`);
+		mdString.isTrusted = true;
+
+		decorations.push({
+			range,
+			renderOptions: {
+				before: {
+					contentText: FOLDED_CLASS_ICON,
+				}
+			},
+			hoverMessage: mdString
+		});
 	}
 
 	editor.setDecorations(foldedDecorations, decorations);
@@ -225,6 +238,21 @@ export function activate(extensionContext: vscode.ExtensionContext) {
 		toggleClassAttributes(vscode.window.activeTextEditor);
 	});
 
+	let expandCmd = vscode.commands.registerCommand('rails-buddy.temporarilyExpand', (rangeData) => {
+		const editor = vscode.window.activeTextEditor;
+		if (!editor) return;
+
+		const range = new vscode.Range(
+			new vscode.Position(rangeData.start.line, rangeData.start.character),
+			new vscode.Position(rangeData.end.line, rangeData.end.character)
+		);
+
+		const editorKey = editor.document.uri.toString();
+		temporarilyExpanded.set(editorKey, range);
+		
+		applyFolding(editor);
+	});
+
 	context.subscriptions.push(
 		vscode.window.onDidChangeTextEditorSelection(e => {
 			updateModifierHighlights(e.textEditor);
@@ -241,6 +269,22 @@ export function activate(extensionContext: vscode.ExtensionContext) {
 
 	context.subscriptions.push(toggleCmd);
 	context.subscriptions.push(foldedDecorations);	
+	context.subscriptions.push(expandCmd);
+
+	// Add cursor position check to collapse when leaving
+	context.subscriptions.push(
+		vscode.window.onDidChangeTextEditorSelection(e => {
+			const editor = e.textEditor;
+			const editorKey = editor.document.uri.toString();
+			const expandedRange = temporarilyExpanded.get(editorKey);
+			
+			if (expandedRange && !expandedRange.contains(editor.selection.active)) {
+				temporarilyExpanded.delete(editorKey);
+				applyFolding(editor);
+			}
+			updateModifierHighlights(editor);
+		})
+	);
 }
 
 export function deactivate() {

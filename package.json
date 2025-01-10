@@ -10,7 +10,8 @@
     "Other"
   ],
   "activationEvents": [
-    "onLanguage:erb"
+    "onLanguage:erb",
+    "onCommand:rails-buddy.temporarilyExpand"
   ],
   "main": "./dist/extension.js",
   "contributes": {
@@ -38,6 +39,11 @@
       {
         "command": "rails-buddy.toggleTurboFrames",
         "title": "Rails Buddy: Toggle Turbo Frame Highlighting"
+      },
+      {
+        "command": "rails-buddy.temporarilyExpand",
+        "title": "Temporarily Expand Class Attribute",
+        "enablement": "false"
       }
     ],
     "configuration": {
