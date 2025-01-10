@@ -54,12 +54,11 @@
           "enum": ["always", "whenInBlock"],
           "default": "whenInBlock",
           "description": "Controls when Ruby code should be emphasized in ERB templates"
-        },
-        "railsBuddy.rememberToggles": {
-          "type": "string",
-          "enum": ["Always", "Per File", "Never"],
-          "default": "Never",
-          "description": "How to remember toggle states for class attributes and emphasized Ruby"
+        },        
+        "rails-buddy.toggleWordWrapWithFolding": {
+          "type": "boolean",
+          "default": false,
+          "description": "Toggle word wrap when folding class attributes"
         }
       }
     }

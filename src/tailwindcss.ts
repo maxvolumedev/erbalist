@@ -189,6 +189,12 @@ function updateModifierHighlights(editor: vscode.TextEditor | undefined) {
 
 function toggleClassAttributes(editor: vscode.TextEditor | undefined) {
 	if (!editor) { return; }
+	
+	const config = vscode.workspace.getConfiguration('rails-buddy');
+	if (config.get('toggleWordWrapWithFolding')) {
+		vscode.commands.executeCommand('editor.action.toggleWordWrap');
+	}
+	
 	setFoldState(editor, !getFoldState(editor));
 	applyFolding(editor);
 }
