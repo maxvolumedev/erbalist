@@ -34,6 +34,10 @@ const updateDimming = (editor: vscode.TextEditor | undefined) => {
 			const range = new vscode.Range(startPos, endPos);
 
 			if (range.contains(cursorPosition)) {
+				if (match[0].startsWith('<%#')) {
+					editor.setDecorations(dimmedDecorations, []);
+					return;
+				}
 				isInRubyBlock = true;
 				break;
 			}
