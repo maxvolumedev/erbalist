@@ -195,7 +195,9 @@ function toggleClassAttributes(editor: vscode.TextEditor | undefined) {
 		vscode.commands.executeCommand('editor.action.toggleWordWrap');
 	}
 	
-	setFoldState(editor, !getFoldState(editor));
+	const newState = !getFoldState(editor);
+	setFoldState(editor, newState);
+	vscode.commands.executeCommand('setContext', 'railsBuddy.classAttributesFolded', newState);
 	applyFolding(editor);
 }
 
@@ -240,7 +242,10 @@ export function activate(extensionContext: vscode.ExtensionContext) {
 		}
 	});
 
-	let toggleCmd = vscode.commands.registerCommand('rails-buddy.toggleClassAttributes', () => {
+	let toggleCmd = vscode.commands.registerCommand('rails-buddy.toggleClassAttributes.on', () => {
+		toggleClassAttributes(vscode.window.activeTextEditor);
+	});
+	let toggleCmd2 = vscode.commands.registerCommand('rails-buddy.toggleClassAttributes.off', () => {
 		toggleClassAttributes(vscode.window.activeTextEditor);
 	});
 
@@ -263,17 +268,18 @@ export function activate(extensionContext: vscode.ExtensionContext) {
 		vscode.window.onDidChangeTextEditorSelection(e => {
 			updateModifierHighlights(e.textEditor);
 		}),
-		vscode.window.onDidChangeActiveTextEditor(editor => {		
-      if (editor)	{
-        applyFolding(editor);        
-        updateModifierHighlights(editor);
-      }
+		vscode.window.onDidChangeActiveTextEditor(editor => {
+			if (editor) {
+				vscode.commands.executeCommand('setContext', 'railsBuddy.classAttributesFolded', getFoldState(editor));
+				applyFolding(editor);
+			}
 		}),
 		exactMatchDecoration,
 		...modifierDecorationTypes
 	);
 
 	context.subscriptions.push(toggleCmd);
+	context.subscriptions.push(toggleCmd2);
 	context.subscriptions.push(foldedDecorations);	
 	context.subscriptions.push(expandCmd);
 
@@ -291,6 +297,8 @@ export function activate(extensionContext: vscode.ExtensionContext) {
 			updateModifierHighlights(editor);
 		})
 	);
+
+	vscode.commands.executeCommand('setContext', 'railsBuddy.classAttributesFolded', false);  // Start unfolded
 }
 
 export function deactivate() {

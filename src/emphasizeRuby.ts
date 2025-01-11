@@ -73,11 +73,20 @@ export function activate(context: vscode.ExtensionContext) {
 		opacity: '0.5'
 	});
 
-	let toggleEmphasizedRubyCmd = vscode.commands.registerCommand('rails-buddy.toggleEmphasizedRuby', () => {
+	let toggleCmd = vscode.commands.registerCommand('rails-buddy.toggleEmphasizedRuby.on', () => {
 		const editor = vscode.window.activeTextEditor;
 		if (!editor) return;
-
-		setDimState(editor, !getDimState(editor));
+		const newState = !getDimState(editor);
+		setDimState(editor, newState);
+		vscode.commands.executeCommand('setContext', 'railsBuddy.emphasizedRubyEnabled', newState);
+		updateDimming(editor);
+	});
+	let toggleCmd2 = vscode.commands.registerCommand('rails-buddy.toggleEmphasizedRuby.off', () => {
+		const editor = vscode.window.activeTextEditor;
+		if (!editor) return;
+		const newState = !getDimState(editor);
+		setDimState(editor, newState);
+		vscode.commands.executeCommand('setContext', 'railsBuddy.emphasizedRubyEnabled', newState);
 		updateDimming(editor);
 	});
 
@@ -86,10 +95,14 @@ export function activate(context: vscode.ExtensionContext) {
 			updateDimming(e.textEditor);
 		}),
 		vscode.window.onDidChangeActiveTextEditor(editor => {
-			updateDimming(editor);
+			if (editor) {
+				vscode.commands.executeCommand('setContext', 'railsBuddy.emphasizedRubyEnabled', getDimState(editor));
+				updateDimming(editor);
+			}
 		}),
 		dimmedDecorations,
-		toggleEmphasizedRubyCmd,
+		toggleCmd,
+		toggleCmd2,
 		vscode.workspace.onDidChangeConfiguration(e => {
 			if (e.affectsConfiguration('railsBuddy.highlightMode')) {
 				vscode.window.visibleTextEditors.forEach(editor => {
@@ -100,6 +113,8 @@ export function activate(context: vscode.ExtensionContext) {
 			}
 		})
 	);
+
+	vscode.commands.executeCommand('setContext', 'railsBuddy.emphasizedRubyEnabled', false);
 }
 
 export function deactivate() {

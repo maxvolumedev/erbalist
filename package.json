@@ -10,8 +10,7 @@
     "Other"
   ],
   "activationEvents": [
-    "onLanguage:erb",
-    "onCommand:rails-buddy.temporarilyExpand"
+    "onLanguage:erb"
   ],
   "main": "./dist/extension.js",
   "contributes": {
@@ -21,12 +20,32 @@
         "title": "Hello World"
       },
       {
-        "command": "rails-buddy.toggleClassAttributes",
-        "title": "Rails Buddy: Toggle Class Attributes"
+        "command": "rails-buddy.toggleTurboFrames.on",
+        "title": "Rails Buddy: Toggle Turbo Frame Highlighting On"
       },
       {
-        "command": "rails-buddy.toggleEmphasizedRuby",
-        "title": "Rails Buddy: Toggle Emphasized Ruby"
+        "command": "rails-buddy.toggleTurboFrames.off",
+        "title": "Rails Buddy: Toggle Turbo Frame Highlighting Off"
+      },
+      {
+        "command": "rails-buddy.toggleClassAttributes.on",
+        "title": "Rails Buddy: Toggle Class Attributes Folding On",
+        "when": "false"
+      },
+      {
+        "command": "rails-buddy.toggleClassAttributes.off",
+        "title": "Rails Buddy: Toggle Class Attributes Folding Off",
+        "when": "railsBuddy.classAttributesFolded != true"
+      },
+      {
+        "command": "rails-buddy.toggleEmphasizedRuby.on",
+        "title": "Rails Buddy: Toggle Emphasized Ruby On",
+        "when": "railsBuddy.emphasizedRubyEnabled == true"
+      },
+      {
+        "command": "rails-buddy.toggleEmphasizedRuby.off",
+        "title": "Rails Buddy: Toggle Emphasized Ruby Off",
+        "when": "railsBuddy.emphasizedRubyEnabled != true"
       },
       {
         "command": "rails-buddy.foldSvg",
@@ -35,10 +54,6 @@
       {
         "command": "rails-buddy.expandSvg",
         "title": "Rails Buddy: Expand SVG Tags"
-      },
-      {
-        "command": "rails-buddy.toggleTurboFrames",
-        "title": "Rails Buddy: Toggle Turbo Frame Highlighting"
       },
       {
         "command": "rails-buddy.temporarilyExpand",
@@ -61,6 +76,34 @@
           "description": "Toggle word wrap when folding class attributes"
         }
       }
+    },
+    "menus": {
+      "commandPalette": [
+        {
+          "command": "rails-buddy.toggleTurboFrames.on",
+          "when": "!railsBuddy.turboFramesEnabled"
+        },
+        {
+          "command": "rails-buddy.toggleTurboFrames.off",
+          "when": "railsBuddy.turboFramesEnabled"
+        },
+        {
+          "command": "rails-buddy.toggleClassAttributes.on",
+          "when": "!railsBuddy.classAttributesFolded"
+        },
+        {
+          "command": "rails-buddy.toggleClassAttributes.off",
+          "when": "railsBuddy.classAttributesFolded"
+        },
+        {
+          "command": "rails-buddy.toggleEmphasizedRuby.on",
+          "when": "!railsBuddy.emphasizedRubyEnabled"
+        },
+        {
+          "command": "rails-buddy.toggleEmphasizedRuby.off",
+          "when": "railsBuddy.emphasizedRubyEnabled"
+        }
+      ]
     }
   },
   "scripts": {
