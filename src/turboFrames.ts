@@ -187,17 +187,25 @@ function findTurboFrames(editor: vscode.TextEditor, foldingRanges: vscode.Foldin
                     id,
                     range: new vscode.Range(
                         new vscode.Position(range.start, 0),
-                        new vscode.Position(range.end, editor.document.lineAt(range.end).text.length)
+                        new vscode.Position(range.end + 1, editor.document.lineAt(range.end + 1).text.length)
                     )
                 });
             } else {
-                frames.push({
-                    id,
-                    range: new vscode.Range(
-                        new vscode.Position(i, 0),
-                        new vscode.Position(i, lines[i].length)
-                    )
-                });
+                // Look for the next <% end %> line for empty frames
+                let endLine = i;
+                while (endLine < lines.length) {
+                    if (lines[endLine].includes('<% end %>')) {
+                        frames.push({
+                            id,
+                            range: new vscode.Range(
+                                new vscode.Position(i, 0),
+                                new vscode.Position(endLine, editor.document.lineAt(endLine).text.length)
+                            )
+                        });
+                        break;
+                    }
+                    endLine++;
+                }
             }
         }
     }
