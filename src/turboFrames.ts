@@ -58,6 +58,7 @@ async function updateFrameHighlight(editor: vscode.TextEditor | undefined) {
     ) || [];
 
     const cursorPos = editor.selection.active;
+    let decorations: vscode.Range[] = [];
     
     // Check for frame references in current line and parent elements
     const frameRef = findFrameReferenceInLineOrParents(editor, cursorPos.line);
@@ -65,13 +66,20 @@ async function updateFrameHighlight(editor: vscode.TextEditor | undefined) {
         const frames = findTurboFrames(editor, foldingRanges);
         const targetFrame = frames.find(f => f.id === frameRef);
         if (targetFrame) {
-            editor.setDecorations(frameDecoration, [targetFrame.range]);
+            decorations = [targetFrame.range, ...findAllFrameReferences(editor, targetFrame.id)];
+            editor.setDecorations(frameDecoration, decorations);
             return;
         }
     }
 
     // If no frame reference found, check if we're inside a frame
-    const decorations = findContainingFrame(editor, cursorPos, foldingRanges);
+    const containingFrame = findContainingFrame(editor, cursorPos, foldingRanges);
+    if (containingFrame.length > 0) {
+        const frameId = extractFrameId(editor.document.lineAt(containingFrame[0].start.line).text);
+        if (frameId) {
+            decorations = [...containingFrame, ...findAllFrameReferences(editor, frameId)];
+        }
+    }
     editor.setDecorations(frameDecoration, decorations);
 }
 
@@ -255,4 +263,22 @@ function registerCommands(context: vscode.ExtensionContext) {
     let toggleCmd2 = vscode.commands.registerCommand('rails-buddy.toggleTurboFrames.off', toggleTurboFrames);
 
     context.subscriptions.push(toggleCmd, toggleCmd2);
+}
+
+function findAllFrameReferences(editor: vscode.TextEditor, frameId: string): vscode.Range[] {
+    const text = editor.document.getText();
+    const lines = text.split('\n');
+    const references: vscode.Range[] = [];
+
+    lines.forEach((line, index) => {
+        const ref = extractFrameReference(line);
+        if (ref === frameId) {
+            references.push(new vscode.Range(
+                new vscode.Position(index, 0),
+                new vscode.Position(index, line.length)
+            ));
+        }
+    });
+
+    return references;
 } 
