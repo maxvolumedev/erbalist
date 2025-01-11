@@ -125,28 +125,44 @@ function getIndentLevel(line: string): number {
 function findContainingFrame(editor: vscode.TextEditor, cursorPos: vscode.Position, foldingRanges: vscode.FoldingRange[]): vscode.Range[] {
     const currentLine = editor.document.lineAt(cursorPos.line).text;
     
-    // Check if we're on a single-line frame
-    if (currentLine.includes('turbo_frame_tag')) {
-        return [new vscode.Range(
-            new vscode.Position(cursorPos.line, 0),
-            new vscode.Position(cursorPos.line, currentLine.length)
-        )];
-    }
-
     // Check if we're inside a multi-line frame
     for (const range of foldingRanges) {
         const startLine = range.start;
-        const endLine = range.end;
+        const endLine = range.end + 1;
         const lineText = editor.document.lineAt(startLine).text;
 
         if (lineText.includes('turbo_frame_tag') && 
-            cursorPos.line >= startLine && 
-            cursorPos.line <= endLine) {
+            (cursorPos.line >= startLine && cursorPos.line <= endLine)) {
             
             return [new vscode.Range(
                 new vscode.Position(startLine, 0),
                 new vscode.Position(endLine, editor.document.lineAt(endLine).text.length)
             )];
+        }
+    }
+
+    // Check if we're on a single-line frame
+    if (currentLine.includes('turbo_frame_tag')) {
+        // Find the matching folding range for this line
+        const range = foldingRanges.find(r => r.start === cursorPos.line);
+        if (range) {
+            return [new vscode.Range(
+                new vscode.Position(range.start, 0),
+                new vscode.Position(range.end + 1, editor.document.lineAt(range.end + 1).text.length)
+            )];
+        }
+        
+        // Handle empty frames by looking for the next <% end %> line
+        let endLine = cursorPos.line;
+        while (endLine < editor.document.lineCount) {
+            const line = editor.document.lineAt(endLine).text;
+            if (line.includes('<% end %>')) {
+                return [new vscode.Range(
+                    new vscode.Position(cursorPos.line, 0),
+                    new vscode.Position(endLine, line.length)
+                )];
+            }
+            endLine++;
         }
     }
 
