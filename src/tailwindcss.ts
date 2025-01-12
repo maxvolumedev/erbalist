@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import * as types from "./types";
+import { debounce } from './utils';
 
 const CLASS_ATTR_REGEX = /class ?[=:] ?["']([^"']+)["']/g;
 const FOLDED_CLASS_ICON = '⋯';
@@ -8,11 +8,11 @@ let foldedDecorations: vscode.TextEditorDecorationType;
 let modifierDecorationTypes: vscode.TextEditorDecorationType[] = [];
 let exactMatchDecoration: vscode.TextEditorDecorationType;
 const MODIFIER_COLORS = [
-	'rgba(255, 255, 0, 0.3)',   // yellow
-	'rgba(0, 255, 255, 0.3)',   // cyan
-	'rgba(255, 0, 255, 0.3)',   // magenta
-	'rgba(0, 255, 0, 0.3)',     // green
-	'rgba(255, 128, 0, 0.3)',   // orange
+	'rgba(255, 255, 0, 0.2)',   // yellow
+	'rgba(0, 255, 255, 0.2)',   // cyan
+	'rgba(255, 0, 255, 0.2)',   // magenta
+	'rgba(0, 255, 0,   0.2)',     // green
+	'rgba(255, 128, 0, 0.2)',   // orange
 ];
 
 const foldedState = new Map<string, boolean>();
@@ -206,13 +206,17 @@ function applyFolding(editor: vscode.TextEditor | undefined) {
 	getFoldState(editor) ? foldClassAttributes(editor) : unfoldClassAttributes(editor);
 }
 
+const debouncedApplyFolding = debounce((editor: vscode.TextEditor) => {
+	applyFolding(editor);
+}, 150);
+
 let context: vscode.ExtensionContext;
 
 export function activate(extensionContext: vscode.ExtensionContext) {
 	context = extensionContext;
 
 	exactMatchDecoration = vscode.window.createTextEditorDecorationType({
-		border: '1px solid  rgba(255, 255, 255, 0.5)',
+		border: '1px solid  rgba(255, 255, 255, 0.25)',
 		borderRadius: '2px',
 		rangeBehavior: vscode.DecorationRangeBehavior.ClosedClosed
 	});
@@ -295,6 +299,15 @@ export function activate(extensionContext: vscode.ExtensionContext) {
 				applyFolding(editor);
 			}
 			updateModifierHighlights(editor);
+		})
+	);
+
+	context.subscriptions.push(
+		vscode.workspace.onDidChangeTextDocument(e => {
+			const editor = vscode.window.activeTextEditor;
+			if (editor && e.document === editor.document) {
+				debouncedApplyFolding(editor);
+			}
 		})
 	);
 
