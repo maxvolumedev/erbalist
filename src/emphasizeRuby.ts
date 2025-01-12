@@ -70,7 +70,7 @@ const updateDimming = (editor: vscode.TextEditor | undefined) => {
 
 export function activate(context: vscode.ExtensionContext) {
 	dimmedDecorations = vscode.window.createTextEditorDecorationType({
-		opacity: '0.5'
+		opacity: '0.3'
 	});
 
 	let toggleCmd = vscode.commands.registerCommand('rails-buddy.toggleEmphasizedRuby.on', () => {
