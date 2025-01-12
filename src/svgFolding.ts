@@ -14,8 +14,17 @@ async function foldSvgTags() {
     const document = editor.document;
     const text = document.getText();
     
-    const foldingRanges = findSvgRanges(text);
-    await applyFolds(editor, foldingRanges);
+    const foldingRanges = await vscode.commands.executeCommand<vscode.FoldingRange[]>(
+        'vscode.executeFoldingRangeProvider', 
+        editor.document.uri
+    ) || [];
+
+    const svgRanges = foldingRanges.filter(range => {
+        const lineText = document.lineAt(range.start).text;
+        return /<svg[\s>]/.test(lineText);
+    });
+
+    await applyFolds(editor, svgRanges);
 }
 
 async function expandSvgTags() {
@@ -23,23 +32,6 @@ async function expandSvgTags() {
     if (!editor) return;
     
     await vscode.commands.executeCommand('editor.unfoldAll');
-}
-
-function findSvgRanges(text: string): vscode.FoldingRange[] {
-    const ranges: vscode.FoldingRange[] = [];
-    const svgRegex = /<svg[\s\S]*?<\/svg>/g;
-    
-    let match;
-    while ((match = svgRegex.exec(text)) !== null) {
-        const startPos = text.substring(0, match.index).split('\n').length - 1;
-        const endPos = text.substring(0, match.index + match[0].length).split('\n').length - 1;
-        
-        if (startPos !== endPos) {
-            ranges.push(new vscode.FoldingRange(startPos, endPos));
-        }
-    }
-    
-    return ranges;
 }
 
 async function applyFolds(editor: vscode.TextEditor, ranges: vscode.FoldingRange[]) {
