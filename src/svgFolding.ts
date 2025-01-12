@@ -13,38 +13,23 @@ async function foldSvgTags() {
     const editor = vscode.window.activeTextEditor;
     if (!editor) return;
 
-    const document = editor.document;
-    const text = document.getText();
-    
     const foldingRanges = await vscode.commands.executeCommand<vscode.FoldingRange[]>(
         'vscode.executeFoldingRangeProvider', 
         editor.document.uri
     ) || [];
 
-    const svgRanges = foldingRanges.filter(range => {
-        const lineText = document.lineAt(range.start).text;
-        return /<svg[\s>]/.test(lineText) && !foldedRanges.has(range.start);
-    });
+    const svgRanges = foldingRanges.filter(range => 
+        /<svg[\s>]/.test(editor.document.lineAt(range.start).text) && 
+        !foldedRanges.has(range.start)
+    );
 
-    for (const range of svgRanges) {
-        foldedRanges.add(range.start);
-    }
-
-    await applyFolds(editor, svgRanges);
+    svgRanges.forEach(range => foldedRanges.add(range.start));
+    await vscode.commands.executeCommand('editor.fold', { selectionLines: svgRanges.map(range => range.start) });
 }
 
 async function expandSvgTags() {
-    const editor = vscode.window.activeTextEditor;
-    if (!editor) return;
-    
     foldedRanges.clear();
     await vscode.commands.executeCommand('editor.unfoldAll');
 }
-
-async function applyFolds(editor: vscode.TextEditor, ranges: vscode.FoldingRange[]) {
-    await vscode.commands.executeCommand('editor.fold', {
-        selectionLines: ranges.map(range => range.start)
-    });
-} 
 
 export function deactivate() {}
