@@ -1,5 +1,7 @@
 import * as vscode from 'vscode';
 
+let foldedRanges: Set<number> = new Set();
+
 export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(
         vscode.commands.registerCommand('rails-buddy.foldSvg', foldSvgTags),
@@ -21,8 +23,12 @@ async function foldSvgTags() {
 
     const svgRanges = foldingRanges.filter(range => {
         const lineText = document.lineAt(range.start).text;
-        return /<svg[\s>]/.test(lineText);
+        return /<svg[\s>]/.test(lineText) && !foldedRanges.has(range.start);
     });
+
+    for (const range of svgRanges) {
+        foldedRanges.add(range.start);
+    }
 
     await applyFolds(editor, svgRanges);
 }
@@ -31,6 +37,7 @@ async function expandSvgTags() {
     const editor = vscode.window.activeTextEditor;
     if (!editor) return;
     
+    foldedRanges.clear();
     await vscode.commands.executeCommand('editor.unfoldAll');
 }
 
