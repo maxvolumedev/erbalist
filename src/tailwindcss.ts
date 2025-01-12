@@ -17,6 +17,7 @@ const MODIFIER_COLORS = [
 
 const foldedState = new Map<string, boolean>();
 const temporarilyExpanded = new Map<string, vscode.Range>();
+const foldedRanges = new Map<string, vscode.Range[]>();
 
 function getFoldState(editor: vscode.TextEditor): boolean {
 	return foldedState.get(editor.document.uri.toString()) || false;
@@ -27,11 +28,15 @@ function setFoldState(editor: vscode.TextEditor, state: boolean) {
 }
 
 function unfoldClassAttributes(editor: vscode.TextEditor) {
+	const editorKey = editor.document.uri.toString();
+	foldedRanges.delete(editorKey); // Clear stored ranges
 	editor.setDecorations(foldedDecorations, []);
 }
 
 function foldClassAttributes(editor: vscode.TextEditor) {
 	const decorations: vscode.DecorationOptions[] = [];
+	const ranges: vscode.Range[] = []; // Track ranges
+	const editorKey = editor.document.uri.toString();
 	const text = editor.document.getText();
 	let match;
 	CLASS_ATTR_REGEX.lastIndex = 0;
@@ -42,11 +47,11 @@ function foldClassAttributes(editor: vscode.TextEditor) {
 		const range = new vscode.Range(startPos, endPos);
 
 		// Skip if temporarily expanded
-		const editorKey = editor.document.uri.toString();
 		if (temporarilyExpanded.get(editorKey)?.isEqual(range)) {
 			continue;
 		}
 
+		ranges.push(range); // Store the range
 		const mdString = new vscode.MarkdownString(`[Edit](command:rails-buddy.temporarilyExpand?${encodeURIComponent(JSON.stringify({
 			start: { line: range.start.line, character: range.start.character },
 			end: { line: range.end.line, character: range.end.character }
@@ -64,6 +69,7 @@ function foldClassAttributes(editor: vscode.TextEditor) {
 		});
 	}
 
+	foldedRanges.set(editorKey, ranges); // Store all ranges for this editor
 	editor.setDecorations(foldedDecorations, decorations);
 }
 
