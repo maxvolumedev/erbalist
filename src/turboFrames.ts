@@ -75,7 +75,7 @@ async function updateFrameHighlight(editor: vscode.TextEditor | undefined) {
     // If no frame reference found, check if we're inside a frame
     const containingFrame = findContainingFrame(editor, cursorPos, foldingRanges);
     if (containingFrame.length > 0) {
-        const frameId = extractFrameId(editor.document.lineAt(containingFrame[0].start.line).text);
+        const frameId = extractFrameReference(editor.document.lineAt(containingFrame[0].start.line).text);
         if (frameId) {
             decorations = [...containingFrame, ...findAllFrameReferences(editor, frameId)];
         }
@@ -146,116 +146,62 @@ function getIndentLevel(line: string): number {
 }
 
 function findContainingFrame(editor: vscode.TextEditor, cursorPos: vscode.Position, foldingRanges: vscode.FoldingRange[]): vscode.Range[] {
-    const currentLine = editor.document.lineAt(cursorPos.line).text;
-    
-    // Check if we're inside a multi-line frame
+    // Combine both multi-line and single-line checks into one loop
     for (const range of foldingRanges) {
         const startLine = range.start;
-        const endLine = range.end + 1;
         const lineText = editor.document.lineAt(startLine).text;
 
         if (lineText.includes('turbo_frame_tag') && 
-            (cursorPos.line >= startLine && cursorPos.line <= endLine)) {
+            cursorPos.line >= startLine && 
+            cursorPos.line <= range.end + 1) {
             
             return [new vscode.Range(
                 new vscode.Position(startLine, 0),
-                new vscode.Position(endLine, editor.document.lineAt(endLine).text.length)
-            )];
-        }
-    }
-
-    // Check if we're on a single-line frame
-    if (currentLine.includes('turbo_frame_tag')) {
-        // Find the matching folding range for this line
-        const range = foldingRanges.find(r => r.start === cursorPos.line);
-        if (range) {
-            return [new vscode.Range(
-                new vscode.Position(range.start, 0),
                 new vscode.Position(range.end + 1, editor.document.lineAt(range.end + 1).text.length)
             )];
         }
-        
-        // Handle empty frames by looking for the next <% end %> line
-        let endLine = cursorPos.line;
-        while (endLine < editor.document.lineCount) {
-            const line = editor.document.lineAt(endLine).text;
-            if (line.includes('<% end %>')) {
-                return [new vscode.Range(
-                    new vscode.Position(cursorPos.line, 0),
-                    new vscode.Position(endLine, line.length)
-                )];
-            }
-            endLine++;
-        }
     }
-
     return [];
 }
 
 function findTurboFrames(editor: vscode.TextEditor, foldingRanges: vscode.FoldingRange[]): TurboFrame[] {
     const frames: TurboFrame[] = [];
-    const text = editor.document.getText();
-    const lines = text.split('\n');
-
-    for (let i = 0; i < lines.length; i++) {
-        const line = lines[i].trim();
-        if (line.includes('turbo_frame_tag')) {
-            const id = extractFrameId(line);
-            if (!id) continue;
-
-            // Check if this is part of a folding range
-            const range = foldingRanges.find(r => r.start === i);
-            if (range) {
+    const document = editor.document;
+    
+    for (const range of foldingRanges) {
+        const lineText = document.lineAt(range.start).text;
+        if (lineText.includes('turbo_frame_tag')) {
+            const id = extractFrameReference(lineText);
+            if (id) {
                 frames.push({
                     id,
                     range: new vscode.Range(
                         new vscode.Position(range.start, 0),
-                        new vscode.Position(range.end + 1, editor.document.lineAt(range.end + 1).text.length)
+                        new vscode.Position(range.end + 1, document.lineAt(range.end + 1).text.length)
                     )
                 });
-            } else {
-                // Look for the next <% end %> line for empty frames
-                let endLine = i;
-                while (endLine < lines.length) {
-                    if (lines[endLine].includes('<% end %>')) {
-                        frames.push({
-                            id,
-                            range: new vscode.Range(
-                                new vscode.Position(i, 0),
-                                new vscode.Position(endLine, editor.document.lineAt(endLine).text.length)
-                            )
-                        });
-                        break;
-                    }
-                    endLine++;
-                }
             }
         }
     }
     return frames;
 }
 
-function extractFrameId(line: string): string | null {
-    const match = line.match(/turbo_frame_tag\s*(?:"|')([^"']+)(?:"|')/);
-    return match ? match[1] : null;
-}
-
 function extractFrameReference(line: string): string | null {
-    // HTML data-turbo-frame attribute
-    const dataMatch = line.match(/data-turbo-frame\s*=\s*(?:"|')([^"']+)(?:"|')/);
-    if (dataMatch) return dataMatch[1];
-
-    // Ruby data: { turbo_frame: "id" } syntax
-    const rubyDataMatch = line.match(/data:\s*{\s*turbo_frame:\s*(?:"|')([^"']+)(?:"|')/);
-    if (rubyDataMatch) return rubyDataMatch[1];
-
+    const patterns = [
+        /data-turbo-frame\s*=\s*(?:"|')([^"']+)(?:"|')/,
+        /data:\s*{\s*turbo_frame:\s*(?:"|')([^"']+)(?:"|')/,
+        /turbo_frame_tag\s*(?:"|')([^"']+)(?:"|')/
+    ];
+    
+    for (const pattern of patterns) {
+        const match = line.match(pattern);
+        if (match) return match[1];
+    }
     return null;
 }
 
 export function deactivate() {
-    if (frameDecoration) {
-        frameDecoration.dispose();
-    }
+    frameDecoration?.dispose();
 }
 
 function registerCommands(context: vscode.ExtensionContext) {
