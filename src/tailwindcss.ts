@@ -318,6 +318,15 @@ export function activate(extensionContext: vscode.ExtensionContext) {
 	);
 
 	vscode.commands.executeCommand('setContext', 'railsBuddy.classAttributesFolded', false);  // Start unfolded
+
+	context.subscriptions.push(
+		vscode.workspace.onDidCloseTextDocument(document => {
+			const uri = document.uri.toString();
+			foldedState.delete(uri);
+			foldedRanges.delete(uri);
+			temporarilyExpanded.delete(uri);
+		})
+	);
 }
 
 export function deactivate() {
