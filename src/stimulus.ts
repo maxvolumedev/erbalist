@@ -32,7 +32,55 @@ export function activate(context: vscode.ExtensionContext) {
     );
 }
 
-function updateStimulusHighlights(editor: vscode.TextEditor | undefined) {
+async function getScopeRange(
+    editor: vscode.TextEditor, 
+    cursorPosition: vscode.Position,
+    controller: string,
+    text: string
+): Promise<vscode.Range> {
+    const foldingRanges = await vscode.commands.executeCommand<vscode.FoldingRange[]>(
+        'vscode.executeFoldingRangeProvider', 
+        editor.document.uri
+    ) || [];
+
+    const ranges = foldingRanges.map(f => new vscode.Range(
+        f.start, 0,
+        f.end, editor.document.lineAt(f.end).text.length
+    ));
+
+    // Find all ranges containing the cursor
+    const containingRanges = ranges
+        .filter(range => range.contains(cursorPosition))
+        .sort((a, b) => (b.end.line - b.start.line) - (a.end.line - a.start.line));
+
+    // Check each range from smallest to largest
+    for (const range of containingRanges.reverse()) {
+        const rangeText = text.slice(
+            editor.document.offsetAt(range.start),
+            editor.document.offsetAt(range.end)
+        );
+
+        CONTROLLER_ATTR_REGEX.lastIndex = 0;
+        if (CONTROLLER_ATTR_REGEX.test(rangeText)) {
+            CONTROLLER_ATTR_REGEX.lastIndex = 0;
+            let match;
+            while ((match = CONTROLLER_ATTR_REGEX.exec(rangeText)) !== null) {
+                const controllers = (match[1] || match[2]).split(/\s+/).map(normalizeControllerName);
+                if (controllers.includes(normalizeControllerName(controller))) {
+                    return range;
+                }
+            }
+        }
+    }
+
+    // Fallback to full document
+    return new vscode.Range(
+        new vscode.Position(0, 0),
+        editor.document.lineAt(editor.document.lineCount - 1).range.end
+    );
+}
+
+async function updateStimulusHighlights(editor: vscode.TextEditor | undefined) {
     if (!editor || !editor.document.fileName.endsWith('.erb')) {
         editor?.setDecorations(stimulusDecorations, []);
         return;
@@ -40,7 +88,7 @@ function updateStimulusHighlights(editor: vscode.TextEditor | undefined) {
 
     const cursorPosition = editor.selection.active;
     const text = editor.document.getText();
-    const decorations: vscode.DecorationOptions[] = [];
+    let decorations: vscode.DecorationOptions[] = [];
     let currentControllers: string[] = [];
 
     // First find if we're on a data-controller attribute
@@ -196,6 +244,12 @@ function updateStimulusHighlights(editor: vscode.TextEditor | undefined) {
                 });
             }
         }
+
+        // Then filter by scope at the end
+        const scopeRange = await getScopeRange(editor, cursorPosition, currentControllers[0], text);
+        decorations = decorations.filter(decoration => 
+            scopeRange.contains(decoration.range)
+        );
     }
 
     editor.setDecorations(stimulusDecorations, decorations);
