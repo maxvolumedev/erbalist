@@ -14,81 +14,108 @@ function setDimState(editor: vscode.TextEditor, state: boolean) {
 	dimmedState.set(editor.document.uri.toString(), state);
 }
 
+function toggleDimState(editor: vscode.TextEditor) {
+	const newState = !dimmedState.get(editor.document.uri.toString());
+	dimmedState.set(editor.document.uri.toString(), newState);
+	vscode.commands.executeCommand('setContext', 'railsBuddy.emphasizedRubyEnabled', newState);
+	updateDimming(editor);
+}
+
 const updateDimming = (editor: vscode.TextEditor | undefined) => {
-	if (!editor || !editor.document.fileName.endsWith('.erb') || !getDimState(editor)) {
+	if (!editor?.document.fileName.endsWith('.erb') || !dimmedState.get(editor.document.uri.toString())) {
 		editor?.setDecorations(dimmedDecorations, []);
 		return;
 	}
 
-	let highlightSetting = vscode.workspace.getConfiguration('railsBuddy').get<types.HighlightMode>('highlightMode', 'whenInBlock');
+	const highlightSetting = vscode.workspace.getConfiguration('railsBuddy').get<types.HighlightMode>('highlightMode', 'whenInBlock');
 	const cursorPosition = editor.selection.active;
 	const text = editor.document.getText();
-	const decorations: vscode.DecorationOptions[] = [];
-	let isInRubyBlock = highlightSetting === 'always';
-
-	if (!isInRubyBlock) {
-		let match;
-		while ((match = ERB_RUBY_REGEX.exec(text)) !== null) {
-			const startPos = editor.document.positionAt(match.index);
-			const endPos = editor.document.positionAt(match.index + match[0].length);
-			const range = new vscode.Range(startPos, endPos);
-
-			if (range.contains(cursorPosition)) {
-				if (match[0].startsWith('<%#')) {
-					editor.setDecorations(dimmedDecorations, []);
-					return;
-				}
-				isInRubyBlock = true;
-				break;
-			}
-		}
+	
+	if (isInComment(editor, cursorPosition)) {
+		editor.setDecorations(dimmedDecorations, []);
+		return;
 	}
 
-	if (isInRubyBlock) {
-		let lastEnd = 0;
-		ERB_RUBY_REGEX.lastIndex = 0;
-		let match;
-		
-		while ((match = ERB_RUBY_REGEX.exec(text)) !== null) {
-			if (lastEnd < match.index) {
-				const startPos = editor.document.positionAt(lastEnd);
-				const endPos = editor.document.positionAt(match.index);
-				decorations.push({ range: new vscode.Range(startPos, endPos) });
-			}
-			lastEnd = match.index + match[0].length;
-		}
-
-		if (lastEnd < text.length) {
-			const startPos = editor.document.positionAt(lastEnd);
-			const endPos = editor.document.positionAt(text.length);
-			decorations.push({ range: new vscode.Range(startPos, endPos) });
-		}
+	const shouldHighlight = highlightSetting === 'always' || isInRubyBlock(editor, cursorPosition);
+	if (!shouldHighlight) {
+		editor.setDecorations(dimmedDecorations, []);
+		return;
 	}
 
-	editor.setDecorations(dimmedDecorations, decorations);
+	editor.setDecorations(dimmedDecorations, createDecorations(editor, text));
 };
+
+function isInComment(editor: vscode.TextEditor, position: vscode.Position): boolean {
+	const text = editor.document.getText();
+	let match;
+	while ((match = ERB_RUBY_REGEX.exec(text)) !== null) {
+		if (match[0].startsWith('<%#')) {
+			const range = new vscode.Range(
+				editor.document.positionAt(match.index),
+				editor.document.positionAt(match.index + match[0].length)
+			);
+			if (range.contains(position)) return true;
+		}
+	}
+	return false;
+}
+
+function isInRubyBlock(editor: vscode.TextEditor, position: vscode.Position): boolean {
+	const text = editor.document.getText();
+	let match;
+	while ((match = ERB_RUBY_REGEX.exec(text)) !== null) {
+		const range = new vscode.Range(
+			editor.document.positionAt(match.index),
+			editor.document.positionAt(match.index + match[0].length)
+		);
+		if (range.contains(position)) return true;
+	}
+	return false;
+}
+
+function createDecorations(editor: vscode.TextEditor, text: string): vscode.DecorationOptions[] {
+	const decorations: vscode.DecorationOptions[] = [];
+	let lastEnd = 0;
+	ERB_RUBY_REGEX.lastIndex = 0;
+	
+	let match;
+	while ((match = ERB_RUBY_REGEX.exec(text)) !== null) {
+		if (lastEnd < match.index) {
+			decorations.push({
+				range: new vscode.Range(
+					editor.document.positionAt(lastEnd),
+					editor.document.positionAt(match.index)
+				)
+			});
+		}
+		lastEnd = match.index + match[0].length;
+	}
+
+	if (lastEnd < text.length) {
+		decorations.push({
+			range: new vscode.Range(
+				editor.document.positionAt(lastEnd),
+				editor.document.positionAt(text.length)
+			)
+		});
+	}
+
+	return decorations;
+}
 
 export function activate(context: vscode.ExtensionContext) {
 	dimmedDecorations = vscode.window.createTextEditorDecorationType({
-		opacity: '0.3'
+			opacity: '0.3'
 	});
 
-	let toggleCmd = vscode.commands.registerCommand('rails-buddy.toggleEmphasizedRuby.on', () => {
+  const toggle = () => {
 		const editor = vscode.window.activeTextEditor;
-		if (!editor) return;
-		const newState = !getDimState(editor);
-		setDimState(editor, newState);
-		vscode.commands.executeCommand('setContext', 'railsBuddy.emphasizedRubyEnabled', newState);
-		updateDimming(editor);
-	});
-	let toggleCmd2 = vscode.commands.registerCommand('rails-buddy.toggleEmphasizedRuby.off', () => {
-		const editor = vscode.window.activeTextEditor;
-		if (!editor) return;
-		const newState = !getDimState(editor);
-		setDimState(editor, newState);
-		vscode.commands.executeCommand('setContext', 'railsBuddy.emphasizedRubyEnabled', newState);
-		updateDimming(editor);
-	});
+		if (editor) toggleDimState(editor);
+  }
+
+	const toggleOnCmd = vscode.commands.registerCommand('rails-buddy.toggleEmphasizedRuby.on', toggle);
+	const toggleOffCmd = vscode.commands.registerCommand('rails-buddy.toggleEmphasizedRuby.off', toggle);
+
 
 	context.subscriptions.push(
 		vscode.window.onDidChangeTextEditorSelection(e => {
@@ -101,8 +128,8 @@ export function activate(context: vscode.ExtensionContext) {
 			}
 		}),
 		dimmedDecorations,
-		toggleCmd,
-		toggleCmd2,
+		toggleOnCmd,
+		toggleOffCmd,
 		vscode.workspace.onDidChangeConfiguration(e => {
 			if (e.affectsConfiguration('railsBuddy.highlightMode')) {
 				vscode.window.visibleTextEditors.forEach(editor => {
