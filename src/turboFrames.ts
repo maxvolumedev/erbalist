@@ -18,7 +18,7 @@ function toggleTurboFrames() {
 
 export function activate(context: vscode.ExtensionContext) {
     frameDecoration = vscode.window.createTextEditorDecorationType({
-        backgroundColor: 'rgba(100, 100, 250, 0.15)',
+        backgroundColor: 'rgba(100, 100, 250, 0.25)',
         isWholeLine: true,
         borderRadius: '3px',
         overviewRulerColor: 'rgba(100, 100, 250, 0.8)',
