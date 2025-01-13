@@ -52,17 +52,13 @@ function foldClassAttributes(editor: vscode.TextEditor) {
 
 		// Only create decorations for non-expanded ranges
 		if (!Array.from(expandedRanges).some(r => r.intersection(range))) {
-			const mdString = new vscode.MarkdownString(`${match[0]}`);
-			mdString.isTrusted = true;
-
 			decorations.push({
 				range,
 				renderOptions: {
 					before: {
 						contentText: FOLDED_CLASS_ICON,
 					}
-				},
-				hoverMessage: mdString
+				}
 			});
 		}
 	}
@@ -263,17 +259,14 @@ export function activate(extensionContext: vscode.ExtensionContext) {
 			console.log('Selection change kind:', isMouse ? 'Mouse' : 'Keyboard');
 			
 			const foldedRangesForEditor = foldedRanges.get(editorKey) || [];
-			console.log('Folded ranges count:', foldedRangesForEditor.length);
 			for (const selection of editor.selections) {
+        if (!selection.isEmpty) { continue; }
 				for (const range of foldedRangesForEditor) {
-					console.log('Cursor:', selection.active.line, selection.active.character, 
-								'Range:', range.start.line, range.start.character, 
-								'to', range.end.line, range.end.character);
 					if (selection.intersection(range) || range.contains(selection.active)) {
 						expandedRanges.add(range);
 						
-						// If mouse click, move cursor to after opening quote
-						if (isMouse) {
+						// Only move cursor on click with no selection
+						if (isMouse && selection.isEmpty) {
 							const text = editor.document.getText(range);
 							const quoteMatch = text.match(/class=["']/);
 							if (quoteMatch) {
