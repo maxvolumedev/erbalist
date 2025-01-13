@@ -10,7 +10,8 @@
     "Other"
   ],
   "activationEvents": [
-    "onLanguage:erb"
+    "onLanguage:erb",
+    "onStartupFinished"
   ],
   "main": "./dist/extension.js",
   "contributes": {

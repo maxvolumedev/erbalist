@@ -325,6 +325,11 @@ export function activate(extensionContext: vscode.ExtensionContext) {
 			temporarilyExpanded.delete(uri);
 		})
 	);
+
+	// Initialize modifier highlights for active editor
+	if (vscode.window.activeTextEditor) {
+		updateModifierHighlights(vscode.window.activeTextEditor);
+	}
 }
 
 export function deactivate() {
