@@ -1,14 +1,14 @@
-import * as vscode from 'vscode';
+import * as vscode from 'vscode'
 
-const CONTROLLER_ATTR_REGEX = /(?:data-controller=["']([^"']+)["']|data:\s*{[^}]*controller:\s*["']([^"']+)["'][^}]*})/g;
-const STIMULUS_ATTR_REGEX = /(?:data-([^=\s"']+)-(?:target|outlet|value)=["'][^"']*["']|data:\s*{[^}]*?([^:\s"']+?)_(?:target|outlet|value):\s*["'][^"']*["'][^}]*})/g;
-const ACTION_ATTR_REGEX = /(?:data-action=["']([^"']*)["']|data:\s*{[^}]*action:\s*["']([^"']*)["'][^}]*})/g;
-const ACTION_CONTROLLER_REGEX = /->([^#\s]+)#/g;
+const CONTROLLER_ATTR_REGEX = /(?:data-controller=["']([^"']+)["']|data:\s*{[^}]*controller:\s*["']([^"']+)["'][^}]*})/g
+const STIMULUS_ATTR_REGEX = /(?:data-([^=\s"']+)-(?:target|outlet|value)=["'][^"']*["']|data:\s*{[^}]*?([^:\s"']+?)_(?:target|outlet|value):\s*["'][^"']*["'][^}]*})/g
+const ACTION_ATTR_REGEX = /(?:data-action=["']([^"']*)["']|data:\s*{[^}]*action:\s*["']([^"']*)["'][^}]*})/g
+const ACTION_CONTROLLER_REGEX = /->([^#\s]+)#/g
 
-let stimulusDecorations: vscode.TextEditorDecorationType;
+let stimulusDecorations: vscode.TextEditorDecorationType
 
 function normalizeControllerName(name: string): string {
-    return name.replace(/[-_]/g, '-').toLowerCase();
+    return name.replace(/[-_]/g, '-').toLowerCase()
 }
 
 interface AttributeMatch {
@@ -23,29 +23,29 @@ function findAttributeMatches(
   regex: RegExp,
   extractControllers: (match: RegExpExecArray) => string[]
 ): AttributeMatch[] {
-  const matches: AttributeMatch[] = [];
-  regex.lastIndex = 0;
-  let match;
+  const matches: AttributeMatch[] = []
+  regex.lastIndex = 0
+  let match
   
   while ((match = regex.exec(text)) !== null) {
-    const startPos = editor.document.positionAt(match.index);
-    const endPos = editor.document.positionAt(match.index + match[0].length);
+    const startPos = editor.document.positionAt(match.index)
+    const endPos = editor.document.positionAt(match.index + match[0].length)
     matches.push({
       range: new vscode.Range(startPos, endPos),
       controllers: extractControllers(match),
       value: match[1] || match[2]
-    });
+    })
   }
   
-  return matches;
+  return matches
 }
 
 function findCurrentController(
   editor: vscode.TextEditor,
   cursorPosition: vscode.Position
 ): string[] {
-  const text = editor.document.getText();
-  const cursorOffset = editor.document.offsetAt(cursorPosition);
+  const text = editor.document.getText()
+  const cursorOffset = editor.document.offsetAt(cursorPosition)
 
   // Check controller attributes
   const controllerMatches = findAttributeMatches(
@@ -53,11 +53,11 @@ function findCurrentController(
     text, 
     CONTROLLER_ATTR_REGEX,
     match => (match[1] || match[2]).split(/\s+/).map(normalizeControllerName)
-  );
+  )
   
-  const controllerMatch = controllerMatches.find(m => m.range.contains(cursorPosition));
+  const controllerMatch = controllerMatches.find(m => m.range.contains(cursorPosition))
   if (controllerMatch) {
-    return controllerMatch.controllers;
+    return controllerMatch.controllers
   }
 
   // Check action attributes
@@ -66,20 +66,20 @@ function findCurrentController(
     text,
     ACTION_ATTR_REGEX,
     match => {
-      const controllers: string[] = [];
-      const value = match[1] || match[2];
-      let actionMatch;
-      ACTION_CONTROLLER_REGEX.lastIndex = 0;
+      const controllers: string[] = []
+      const value = match[1] || match[2]
+      let actionMatch
+      ACTION_CONTROLLER_REGEX.lastIndex = 0
       while ((actionMatch = ACTION_CONTROLLER_REGEX.exec(value)) !== null) {
-        controllers.push(normalizeControllerName(actionMatch[1]));
+        controllers.push(normalizeControllerName(actionMatch[1]))
       }
-      return controllers;
+      return controllers
     }
-  );
+  )
 
-  const actionMatch = actionMatches.find(m => m.range.contains(cursorPosition));
+  const actionMatch = actionMatches.find(m => m.range.contains(cursorPosition))
   if (actionMatch) {
-    return actionMatch.controllers;
+    return actionMatch.controllers
   }
 
   // Check target/outlet/value attributes
@@ -88,10 +88,10 @@ function findCurrentController(
     text,
     STIMULUS_ATTR_REGEX,
     match => [normalizeControllerName(match[1] || match[2])]
-  );
+  )
 
-  const stimulusMatch = stimulusMatches.find(m => m.range.contains(cursorPosition));
-  return stimulusMatch ? stimulusMatch.controllers : [];
+  const stimulusMatch = stimulusMatches.find(m => m.range.contains(cursorPosition))
+  return stimulusMatch ? stimulusMatch.controllers : []
 }
 
 async function getScopeRange(
@@ -103,33 +103,33 @@ async function getScopeRange(
     const foldingRanges = await vscode.commands.executeCommand<vscode.FoldingRange[]>(
         'vscode.executeFoldingRangeProvider', 
         editor.document.uri
-    ) || [];
+    ) || []
 
     const ranges = foldingRanges.map(f => new vscode.Range(
         f.start, 0,
         f.end, editor.document.lineAt(f.end).text.length
-    ));
+    ))
 
     // Find all ranges containing the cursor
     const containingRanges = ranges
         .filter(range => range.contains(cursorPosition))
-        .sort((a, b) => (b.end.line - b.start.line) - (a.end.line - a.start.line));
+        .sort((a, b) => (b.end.line - b.start.line) - (a.end.line - a.start.line))
 
     // Check each range from smallest to largest
     for (const range of containingRanges.reverse()) {
         const rangeText = text.slice(
             editor.document.offsetAt(range.start),
             editor.document.offsetAt(range.end)
-        );
+        )
 
-        CONTROLLER_ATTR_REGEX.lastIndex = 0;
+        CONTROLLER_ATTR_REGEX.lastIndex = 0
         if (CONTROLLER_ATTR_REGEX.test(rangeText)) {
-            CONTROLLER_ATTR_REGEX.lastIndex = 0;
-            let match;
+            CONTROLLER_ATTR_REGEX.lastIndex = 0
+            let match
             while ((match = CONTROLLER_ATTR_REGEX.exec(rangeText)) !== null) {
-                const controllers = (match[1] || match[2]).split(/\s+/).map(normalizeControllerName);
+                const controllers = (match[1] || match[2]).split(/\s+/).map(normalizeControllerName)
                 if (controllers.includes(normalizeControllerName(controller))) {
-                    return range;
+                    return range
                 }
             }
         }
@@ -139,23 +139,23 @@ async function getScopeRange(
     return new vscode.Range(
         new vscode.Position(0, 0),
         editor.document.lineAt(editor.document.lineCount - 1).range.end
-    );
+    )
 }
 
 async function updateStimulusHighlights(editor: vscode.TextEditor | undefined) {
   if (!editor?.document.fileName.endsWith('.erb')) {
-    editor?.setDecorations(stimulusDecorations, []);
-    return;
+    editor?.setDecorations(stimulusDecorations, [])
+    return
   }
 
-  const currentControllers = findCurrentController(editor, editor.selection.active);
+  const currentControllers = findCurrentController(editor, editor.selection.active)
   if (!currentControllers.length) {
-    editor.setDecorations(stimulusDecorations, []);
-    return;
+    editor.setDecorations(stimulusDecorations, [])
+    return
   }
 
-  const text = editor.document.getText();
-  const decorations: vscode.DecorationOptions[] = [];
+  const text = editor.document.getText()
+  const decorations: vscode.DecorationOptions[] = []
   const normalizedCurrentControllers = currentControllers.map(normalizeControllerName);
 
   // Create decorations for all matching attributes
@@ -163,16 +163,16 @@ async function updateStimulusHighlights(editor: vscode.TextEditor | undefined) {
     { regex: CONTROLLER_ATTR_REGEX, extract: (m: RegExpExecArray) => (m[1] || m[2]).split(/\s+/) },
     { regex: STIMULUS_ATTR_REGEX, extract: (m: RegExpExecArray) => [m[1] || m[2]] },
     { regex: ACTION_ATTR_REGEX, extract: (m: RegExpExecArray) => {
-      const controllers: string[] = [];
-      let actionMatch;
-      ACTION_CONTROLLER_REGEX.lastIndex = 0;
+      const controllers: string[] = []
+      let actionMatch
+      ACTION_CONTROLLER_REGEX.lastIndex = 0
       while ((actionMatch = ACTION_CONTROLLER_REGEX.exec(m[1] || m[2])) !== null) {
-        controllers.push(actionMatch[1]);
+        controllers.push(actionMatch[1])
       }
-      return controllers;
+      return controllers
     }}
   ].forEach(({ regex, extract }) => {
-    const matches = findAttributeMatches(editor, text, regex, extract);
+    const matches = findAttributeMatches(editor, text, regex, extract)
     matches.forEach(match => {
       if (match.controllers.some(c => 
         normalizedCurrentControllers.includes(normalizeControllerName(c))
@@ -180,16 +180,16 @@ async function updateStimulusHighlights(editor: vscode.TextEditor | undefined) {
         decorations.push({
           range: match.range,
           hoverMessage: `Controllers: ${match.controllers.map(normalizeControllerName).join(', ')}`
-        });
+        })
       }
-    });
-  });
+    })
+  })
 
   // Filter by scope
-  const scopeRange = await getScopeRange(editor, editor.selection.active, currentControllers[0], text);
+  const scopeRange = await getScopeRange(editor, editor.selection.active, currentControllers[0], text)
   editor.setDecorations(stimulusDecorations, 
     decorations.filter(d => scopeRange.contains(d.range))
-  );
+  )
 }
 
 export function activate(context: vscode.ExtensionContext) {
@@ -200,21 +200,21 @@ export function activate(context: vscode.ExtensionContext) {
         rangeBehavior: vscode.DecorationRangeBehavior.ClosedClosed,
         overviewRulerLane: vscode.OverviewRulerLane.Right,
         overviewRulerColor: 'rgba(100, 100, 255, 0.3)'
-    });
+    })
 
     context.subscriptions.push(
         vscode.window.onDidChangeTextEditorSelection(e => {
-            updateStimulusHighlights(e.textEditor);
+            updateStimulusHighlights(e.textEditor)
         }),
         vscode.window.onDidChangeActiveTextEditor(editor => {
-            updateStimulusHighlights(editor);
+            updateStimulusHighlights(editor)
         }),
         stimulusDecorations
-    );
+    )
 }
 
 export function deactivate() {
     if (stimulusDecorations) {
-        stimulusDecorations.dispose();
+        stimulusDecorations.dispose()
     }
 } 

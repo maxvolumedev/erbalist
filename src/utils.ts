@@ -1,4 +1,4 @@
-import * as vscode from 'vscode';
+import * as vscode from 'vscode'
 
 // export function createToggleCommands(context: vscode.ExtensionContext, feature: string, callback: () => void) {
 //     ['on', 'off'].forEach(state => {
@@ -50,9 +50,9 @@ export function debounce<T extends (...args: any[]) => any>(
     func: T,
     wait: number
 ): (...args: Parameters<T>) => void {
-    let timeout: NodeJS.Timeout;
+    let timeout: NodeJS.Timeout
     return (...args: Parameters<T>) => {
-        clearTimeout(timeout);
-        timeout = setTimeout(() => func(...args), wait);
-    };
+        clearTimeout(timeout)
+        timeout = setTimeout(() => func(...args), wait)
+    }
 } 
