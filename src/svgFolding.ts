@@ -11,7 +11,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 async function foldSvgTags() {
     const editor = vscode.window.activeTextEditor;
-    if (!editor) return;
+    if (!editor) { return; }
 
     const foldingRanges = await vscode.commands.executeCommand<vscode.FoldingRange[]>(
         'vscode.executeFoldingRangeProvider', 

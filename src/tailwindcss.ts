@@ -344,9 +344,9 @@ export function deactivate() {
 
 // Helper to compare sets of ranges
 function setsEqual(a: Set<vscode.Range>, b: Set<vscode.Range>): boolean {
-	if (a.size !== b.size) return false;
+	if (a.size !== b.size) { return false; }
 	for (const item of a) {
-		if (!Array.from(b).some(r => r.isEqual(item))) return false;
+		if (!Array.from(b).some(r => r.isEqual(item))) { return false; }
 	}
 	return true;
 }

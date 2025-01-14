@@ -195,7 +195,7 @@ function extractFrameReference(line: string): string | null {
     
     for (const pattern of patterns) {
         const match = line.match(pattern);
-        if (match) return match[1];
+        if (match) { return match[1]; }
     }
     return null;
 }

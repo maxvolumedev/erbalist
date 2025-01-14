@@ -54,7 +54,7 @@ function isInComment(editor: vscode.TextEditor, position: vscode.Position): bool
 				editor.document.positionAt(match.index),
 				editor.document.positionAt(match.index + match[0].length)
 			);
-			if (range.contains(position)) return true;
+			if (range.contains(position)) { return true; }
 		}
 	}
 	return false;
@@ -68,7 +68,7 @@ function isInRubyBlock(editor: vscode.TextEditor, position: vscode.Position): bo
 			editor.document.positionAt(match.index),
 			editor.document.positionAt(match.index + match[0].length)
 		);
-		if (range.contains(position)) return true;
+		if (range.contains(position)) { return true; }
 	}
 	return false;
 }
@@ -110,8 +110,8 @@ export function activate(context: vscode.ExtensionContext) {
 
   const toggle = () => {
 		const editor = vscode.window.activeTextEditor;
-		if (editor) toggleDimState(editor);
-  }
+		if (editor) { toggleDimState(editor); }
+  };
 
 	const toggleOnCmd = vscode.commands.registerCommand('rails-buddy.toggleEmphasizedRuby.on', toggle);
 	const toggleOffCmd = vscode.commands.registerCommand('rails-buddy.toggleEmphasizedRuby.off', toggle);
