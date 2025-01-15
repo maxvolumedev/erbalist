@@ -17,7 +17,7 @@ function setDimState(editor: vscode.TextEditor, state: boolean) {
 function toggleDimState(editor: vscode.TextEditor) {
 	const newState = !dimmedState.get(editor.document.uri.toString())
 	dimmedState.set(editor.document.uri.toString(), newState)
-	vscode.commands.executeCommand('setContext', 'railsBuddy.emphasizedRubyEnabled', newState)
+	vscode.commands.executeCommand('setContext', 'erbalist.emphasizedRubyEnabled', newState)
 	updateDimming(editor)
 }
 
@@ -27,7 +27,7 @@ const updateDimming = (editor: vscode.TextEditor | undefined) => {
 		return
 	}
 
-	const highlightSetting = vscode.workspace.getConfiguration('railsBuddy').get<types.HighlightMode>('highlightMode', 'whenInBlock')
+	const highlightSetting = vscode.workspace.getConfiguration('erbalist').get<types.HighlightMode>('highlightMode', 'whenInBlock')
 	const cursorPosition = editor.selection.active
 	const text = editor.document.getText()
 	
@@ -113,8 +113,8 @@ export function activate(context: vscode.ExtensionContext) {
 		if (editor) { toggleDimState(editor) }
   }
 
-	const toggleOnCmd = vscode.commands.registerCommand('rails-buddy.toggleEmphasizedRuby.on', toggle)
-	const toggleOffCmd = vscode.commands.registerCommand('rails-buddy.toggleEmphasizedRuby.off', toggle)
+	const toggleOnCmd = vscode.commands.registerCommand('erbalist.toggleEmphasizedRuby.on', toggle)
+	const toggleOffCmd = vscode.commands.registerCommand('erbalist.toggleEmphasizedRuby.off', toggle)
 
 
 	context.subscriptions.push(
@@ -123,7 +123,7 @@ export function activate(context: vscode.ExtensionContext) {
 		}),
 		vscode.window.onDidChangeActiveTextEditor(editor => {
 			if (editor) {
-				vscode.commands.executeCommand('setContext', 'railsBuddy.emphasizedRubyEnabled', getDimState(editor))
+				vscode.commands.executeCommand('setContext', 'erbalist.emphasizedRubyEnabled', getDimState(editor))
 				updateDimming(editor)
 			}
 		}),
@@ -131,7 +131,7 @@ export function activate(context: vscode.ExtensionContext) {
 		toggleOnCmd,
 		toggleOffCmd,
 		vscode.workspace.onDidChangeConfiguration(e => {
-			if (e.affectsConfiguration('railsBuddy.highlightMode')) {
+			if (e.affectsConfiguration('erbalist.highlightMode')) {
 				vscode.window.visibleTextEditors.forEach(editor => {
 					if (getDimState(editor)) {
 						updateDimming(editor)
@@ -141,7 +141,7 @@ export function activate(context: vscode.ExtensionContext) {
 		})
 	)
 
-	vscode.commands.executeCommand('setContext', 'railsBuddy.emphasizedRubyEnabled', false)
+	vscode.commands.executeCommand('setContext', 'erbalist.emphasizedRubyEnabled', false)
 }
 
 export function deactivate() {

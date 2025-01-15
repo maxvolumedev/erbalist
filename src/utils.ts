@@ -3,13 +3,13 @@ import * as vscode from 'vscode'
 // export function createToggleCommands(context: vscode.ExtensionContext, feature: string, callback: () => void) {
 //     ['on', 'off'].forEach(state => {
 //         context.subscriptions.push(
-//             vscode.commands.registerCommand(`rails-buddy.toggle${feature}.${state}`, callback)
+//             vscode.commands.registerCommand(`erbalist.toggle${feature}.${state}`, callback)
 //         );
 //     });
 // }
 
 // export function setFeatureContext(feature: string, state: boolean) {
-//     return vscode.commands.executeCommand('setContext', `railsBuddy.${feature}Enabled`, state);
+//     return vscode.commands.executeCommand('setContext', `erbalist.${feature}Enabled`, state);
 // }
 
 // export function createDecorationStyle(color: string) {

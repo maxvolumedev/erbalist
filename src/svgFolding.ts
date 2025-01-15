@@ -4,8 +4,8 @@ let foldedRanges: Set<number> = new Set()
 
 export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(
-        vscode.commands.registerCommand('rails-buddy.foldSvg', foldSvgTags),
-        vscode.commands.registerCommand('rails-buddy.expandSvg', expandSvgTags)
+        vscode.commands.registerCommand('erbalist.foldSvg', foldSvgTags),
+        vscode.commands.registerCommand('erbalist.expandSvg', expandSvgTags)
     )
 }
 

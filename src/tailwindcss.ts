@@ -190,14 +190,14 @@ function updateModifierHighlights(editor: vscode.TextEditor | undefined) {
 function toggleClassAttributes(editor: vscode.TextEditor | undefined) {
 	if (!editor) { return }
 	
-	const config = vscode.workspace.getConfiguration('rails-buddy')
+	const config = vscode.workspace.getConfiguration('erbalist')
 	if (config.get('toggleWordWrapWithFolding')) {
 		vscode.commands.executeCommand('editor.action.toggleWordWrap')
 	}
 	
 	const newState = !getFoldState(editor)
 	setFoldState(editor, newState)
-	vscode.commands.executeCommand('setContext', 'railsBuddy.classAttributesFolded', newState)
+	vscode.commands.executeCommand('setContext', 'erbalist.classAttributesFolded', newState)
 	applyFolding(editor)
 }
 
@@ -242,10 +242,10 @@ export function activate(extensionContext: vscode.ExtensionContext) {
 		}
 	})
 
-	let toggleCmd = vscode.commands.registerCommand('rails-buddy.toggleClassAttributes.on', () => {
+	let toggleCmd = vscode.commands.registerCommand('erbalist.toggleClassAttributes.on', () => {
 		toggleClassAttributes(vscode.window.activeTextEditor)
 	})
-	let toggleCmd2 = vscode.commands.registerCommand('rails-buddy.toggleClassAttributes.off', () => {
+	let toggleCmd2 = vscode.commands.registerCommand('erbalist.toggleClassAttributes.off', () => {
 		toggleClassAttributes(vscode.window.activeTextEditor)
 	})
 
@@ -293,7 +293,7 @@ export function activate(extensionContext: vscode.ExtensionContext) {
 	context.subscriptions.push(
 		vscode.window.onDidChangeActiveTextEditor(editor => {
 			if (editor) {
-				vscode.commands.executeCommand('setContext', 'railsBuddy.classAttributesFolded', getFoldState(editor))
+				vscode.commands.executeCommand('setContext', 'erbalist.classAttributesFolded', getFoldState(editor))
 				applyFolding(editor)
 			}
 		}),
@@ -315,7 +315,7 @@ export function activate(extensionContext: vscode.ExtensionContext) {
 		})
 	)
 
-	vscode.commands.executeCommand('setContext', 'railsBuddy.classAttributesFolded', false)  // Start unfolded
+	vscode.commands.executeCommand('setContext', 'erbalist.classAttributesFolded', false)  // Start unfolded
 
 	context.subscriptions.push(
 		vscode.workspace.onDidCloseTextDocument(document => {

@@ -10,7 +10,7 @@ interface TurboFrame {
 
 function toggleTurboFrames() {
     isHighlightingEnabled = !isHighlightingEnabled
-    vscode.commands.executeCommand('setContext', 'railsBuddy.turboFramesEnabled', isHighlightingEnabled)
+    vscode.commands.executeCommand('setContext', 'erbalist.turboFramesEnabled', isHighlightingEnabled)
     if (vscode.window.activeTextEditor) {
         updateFrameHighlight(vscode.window.activeTextEditor)
     }
@@ -32,7 +32,7 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.window.onDidChangeTextEditorSelection(e => updateFrameHighlight(e.textEditor)),
         vscode.window.onDidChangeActiveTextEditor(editor => {
             if (editor) {
-                vscode.commands.executeCommand('setContext', 'railsBuddy.turboFramesEnabled', isHighlightingEnabled)
+                vscode.commands.executeCommand('setContext', 'erbalist.turboFramesEnabled', isHighlightingEnabled)
                 updateFrameHighlight(editor)
             }
         }),
@@ -41,7 +41,7 @@ export function activate(context: vscode.ExtensionContext) {
 
     registerCommands(context)
 
-    vscode.commands.executeCommand('setContext', 'railsBuddy.turboFramesEnabled', isHighlightingEnabled)
+    vscode.commands.executeCommand('setContext', 'erbalist.turboFramesEnabled', isHighlightingEnabled)
 }
 
 async function updateFrameHighlight(editor: vscode.TextEditor | undefined) {
@@ -205,8 +205,8 @@ export function deactivate() {
 }
 
 function registerCommands(context: vscode.ExtensionContext) {
-    let toggleCmd = vscode.commands.registerCommand('rails-buddy.toggleTurboFrames.on', toggleTurboFrames)
-    let toggleCmd2 = vscode.commands.registerCommand('rails-buddy.toggleTurboFrames.off', toggleTurboFrames)
+    let toggleCmd = vscode.commands.registerCommand('erbalist.toggleTurboFrames.on', toggleTurboFrames)
+    let toggleCmd2 = vscode.commands.registerCommand('erbalist.toggleTurboFrames.off', toggleTurboFrames)
 
     context.subscriptions.push(toggleCmd, toggleCmd2)
 }

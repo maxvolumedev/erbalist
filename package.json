@@ -1,7 +1,8 @@
 {
-  "name": "rails-buddy",
-  "displayName": "Rails Buddy",
+  "name": "erbalist",
+  "displayName": "ERBalist",
   "description": "",
+  "icon": "images/icon128.png",
   "version": "0.0.1",
   "engines": {
     "vscode": "^1.93.0"
@@ -17,55 +18,55 @@
   "contributes": {
     "commands": [
       {
-        "command": "rails-buddy.helloWorld",
-        "title": "Hello World"
+        "command": "erbalist.helloWorld",
+        "title": "ERBalist: Hello World"
       },
       {
-        "command": "rails-buddy.toggleTurboFrames.on",
-        "title": "Rails Buddy: Toggle Turbo Frame Highlighting On"
+        "command": "erbalist.toggleTurboFrames.on",
+        "title": "ERBalist: Toggle Turbo Frame Highlighting On"
       },
       {
-        "command": "rails-buddy.toggleTurboFrames.off",
-        "title": "Rails Buddy: Toggle Turbo Frame Highlighting Off"
+        "command": "erbalist.toggleTurboFrames.off",
+        "title": "ERBalist: Toggle Turbo Frame Highlighting Off"
       },
       {
-        "command": "rails-buddy.toggleClassAttributes.on",
-        "title": "Rails Buddy: Toggle Class Attributes Folding On",
+        "command": "erbalist.toggleClassAttributes.on",
+        "title": "ERBalist: Toggle Class Attributes Folding On",
         "when": "false"
       },
       {
-        "command": "rails-buddy.toggleClassAttributes.off",
-        "title": "Rails Buddy: Toggle Class Attributes Folding Off",
-        "when": "railsBuddy.classAttributesFolded != true"
+        "command": "erbalist.toggleClassAttributes.off",
+        "title": "ERBalist: Toggle Class Attributes Folding Off",
+        "when": "erbalist.classAttributesFolded != true"
       },
       {
-        "command": "rails-buddy.toggleEmphasizedRuby.on",
-        "title": "Rails Buddy: Toggle Emphasized Ruby On",
-        "when": "railsBuddy.emphasizedRubyEnabled == true"
+        "command": "erbalist.toggleEmphasizedRuby.on",
+        "title": "ERBalist: Toggle Emphasized Ruby On",
+        "when": "erbalist.emphasizedRubyEnabled == true"
       },
       {
-        "command": "rails-buddy.toggleEmphasizedRuby.off",
-        "title": "Rails Buddy: Toggle Emphasized Ruby Off",
-        "when": "railsBuddy.emphasizedRubyEnabled != true"
+        "command": "erbalist.toggleEmphasizedRuby.off",
+        "title": "ERBalist: Toggle Emphasized Ruby Off",
+        "when": "erbalist.emphasizedRubyEnabled != true"
       },
       {
-        "command": "rails-buddy.foldSvg",
-        "title": "Rails Buddy: Fold SVG Tags"
+        "command": "erbalist.foldSvg",
+        "title": "ERBalist: Fold SVG Tags"
       },
       {
-        "command": "rails-buddy.expandSvg",
-        "title": "Rails Buddy: Expand SVG Tags"
+        "command": "erbalist.expandSvg",
+        "title": "ERBalist: Expand SVG Tags"
       },
       {
-        "command": "rails-buddy.temporarilyExpand",
+        "command": "erbalist.temporarilyExpand",
         "title": "Temporarily Expand Class Attribute",
         "enablement": "false"
       }
     ],
     "configuration": {
-      "title": "Rails Buddy",
+      "title": "ERBalist",
       "properties": {
-        "railsBuddy.highlightMode": {
+        "erbalist.highlightMode": {
           "type": "string",
           "enum": [
             "always",
@@ -74,7 +75,7 @@
           "default": "whenInBlock",
           "description": "Controls when Ruby code should be emphasized in ERB templates"
         },
-        "rails-buddy.toggleWordWrapWithFolding": {
+        "erbalist.toggleWordWrapWithFolding": {
           "type": "boolean",
           "default": false,
           "description": "Toggle word wrap when folding class attributes"
@@ -84,28 +85,28 @@
     "menus": {
       "commandPalette": [
         {
-          "command": "rails-buddy.toggleTurboFrames.on",
-          "when": "!railsBuddy.turboFramesEnabled"
+          "command": "erbalist.toggleTurboFrames.on",
+          "when": "!erbalist.turboFramesEnabled"
         },
         {
-          "command": "rails-buddy.toggleTurboFrames.off",
-          "when": "railsBuddy.turboFramesEnabled"
+          "command": "erbalist.toggleTurboFrames.off",
+          "when": "erbalist.turboFramesEnabled"
         },
         {
-          "command": "rails-buddy.toggleClassAttributes.on",
-          "when": "!railsBuddy.classAttributesFolded"
+          "command": "erbalist.toggleClassAttributes.on",
+          "when": "!erbalist.classAttributesFolded"
         },
         {
-          "command": "rails-buddy.toggleClassAttributes.off",
-          "when": "railsBuddy.classAttributesFolded"
+          "command": "erbalist.toggleClassAttributes.off",
+          "when": "erbalist.classAttributesFolded"
         },
         {
-          "command": "rails-buddy.toggleEmphasizedRuby.on",
-          "when": "!railsBuddy.emphasizedRubyEnabled"
+          "command": "erbalist.toggleEmphasizedRuby.on",
+          "when": "!erbalist.emphasizedRubyEnabled"
         },
         {
-          "command": "rails-buddy.toggleEmphasizedRuby.off",
-          "when": "railsBuddy.emphasizedRubyEnabled"
+          "command": "erbalist.toggleEmphasizedRuby.off",
+          "when": "erbalist.emphasizedRubyEnabled"
         }
       ]
     }
