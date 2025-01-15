@@ -1,71 +1,57 @@
+![Logo](images//erbalist-logo.png)
+
 # ERBalist
 
-This is the README for ERBalist extension. After writing up a brief description, we recommend including the following sections.
+ERBalist makes your ERB files easier to work with by reducing visual noise and highlighting relationships between different parts of your code.
+
+When working with ERB templates, your current context matters - are you styling your presentation, debugging ruby logic, or refining client-side behaviour using Stimulus and Turbo? ERB mixes all of these concerns - ERBalist helps you detangle them.
 
 ## Features
 
-Describe specific features of your extension including screenshots of your extension in action. Image paths are relative to this README file.
+- **Smart Ruby Focus**: Dims HTML when you're working with Ruby code
+- **Turbo Frame Tracking**: Shows current Turbo Frame scope and related elements  
+- **Stimulus Highlighting**: Visualizes controller/target/action/outlet relationships
+- **Tailwind Class Management**:
+  - Folds away those long class strings until you need them
+  - Highlights related modifiers (hover:, sm:, dark:, etc.)
+- **SVG Folding**: Fold/unfold all SVG tags in the document
 
-For example if there is an image subfolder under your extension project workspace:
+ERBalist allows you to focus on what matters right now, while helping you keep track of how everything connects together.
 
-\!\[feature X\]\(images/feature-x.png\)
+Great for Rails apps using modern tools like Hotwire, Stimulus, and Tailwind.
 
-> Tip: Many popular extensions utilize animations. This is an excellent way to show off your extension! We recommend short, focused animations that are easy to follow.
+## Examples
 
-## Requirements
+### Ruby Focus
+![Ruby Focus](images/examples/ruby.png)
 
-If you have any requirements or dependencies, add a section describing those and how to install and configure them.
+### Turbo Frame Tracking
+![Turbo Frame Tracking](images/examples/turbo.png)
+
+### Stimulus Highlighting
+![Stimulus Highlighting](images/examples/stimulus.png)
+
+### Tailwind Modifiers
+![Tailwind Modifiers](images/examples/tailwind.png)
+
+### Class Attribute Folding
+![Tailwind Class Management](images/examples/class-attributes.png)
 
 ## Extension Settings
 
-Include if your extension adds any VS Code settings through the `contributes.configuration` extension point.
-
-For example:
-
 This extension contributes the following settings:
 
-* `myExtension.enable`: Enable/disable this extension.
-* `myExtension.thing`: Set to `blah` to do something.
+* `erbalist.highlightMode`: Controls when Ruby code should be emphasized in ERB templates
+  - `always`: Always highlight Ruby code
+  - `whenInBlock`: Only highlight Ruby code within Ruby blocks (default)
+* `erbalist.toggleWordWrapWithFolding`: Toggle word wrap when folding class attributes (default: false)
 
 ## Known Issues
 
-Calling out known issues can help limit users opening duplicate issues against your extension.
+None yet! Please report any issues on GitHub.
 
 ## Release Notes
 
-Users appreciate release notes as you update your extension.
-
 ### 1.0.0
 
-Initial release of ...
-
-### 1.0.1
-
-Fixed issue #.
-
-### 1.1.0
-
-Added features X, Y, and Z.
-
----
-
-## Following extension guidelines
-
-Ensure that you've read through the extensions guidelines and follow the best practices for creating your extension.
-
-* [Extension Guidelines](https://code.visualstudio.com/api/references/extension-guidelines)
-
-## Working with Markdown
-
-You can author your README using Visual Studio Code. Here are some useful editor keyboard shortcuts:
-
-* Split the editor (`Cmd+\` on macOS or `Ctrl+\` on Windows and Linux).
-* Toggle preview (`Shift+Cmd+V` on macOS or `Shift+Ctrl+V` on Windows and Linux).
-* Press `Ctrl+Space` (Windows, Linux, macOS) to see a list of Markdown snippets.
-
-## For more information
-
-* [Visual Studio Code's Markdown Support](http://code.visualstudio.com/docs/languages/markdown)
-* [Markdown Syntax Reference](https://help.github.com/articles/markdown-basics/)
-
-**Enjoy!**
+Initial release of ERBalist
