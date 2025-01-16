@@ -18,10 +18,6 @@
   "contributes": {
     "commands": [
       {
-        "command": "erbalist.helloWorld",
-        "title": "ERBalist: Hello World"
-      },
-      {
         "command": "erbalist.toggleTurboFrames.on",
         "title": "ERBalist: Toggle Turbo Frame Highlighting On"
       },
@@ -56,11 +52,6 @@
       {
         "command": "erbalist.expandSvg",
         "title": "ERBalist: Expand SVG Tags"
-      },
-      {
-        "command": "erbalist.temporarilyExpand",
-        "title": "Temporarily Expand Class Attribute",
-        "enablement": "false"
       }
     ],
     "configuration": {
