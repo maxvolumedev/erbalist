@@ -1,5 +1,37 @@
-out
-dist
-node_modules
-.vscode-test/
+# VS Code extension specific
+out/
+dist/
 *.vsix
+
+# Node
+node_modules/
+npm-debug.log
+yarn-debug.log*
+yarn-error.log*
+
+# TypeScript
+*.tsbuildinfo
+
+# VS Code specific
+.vscode-test/
+.vscode-test-web/
+.history/
+
+# OS specific
+.DS_Store
+Thumbs.db
+
+# Test coverage
+coverage/
+
+# Logs
+logs/
+*.log
+
+# Environment variables
+.env
+.env.local
+
+# Temporary files
+*.tmp
+*.temp
