@@ -1,5 +1,6 @@
 {
   "name": "erbalist",
+  "publisher": "maxvolumedev",
   "displayName": "ERBalist",
   "description": "ERBalist makes your ERB files easier to work with by reducing visual noise and highlighting relationships between different parts of your code.",
   "icon": "images/icon128.png",
