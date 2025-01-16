@@ -3,13 +3,28 @@
   "displayName": "ERBalist",
   "description": "ERBalist makes your ERB files easier to work with by reducing visual noise and highlighting relationships between different parts of your code.",
   "icon": "images/icon128.png",
-  "version": "0.0.1",
+  "version": "1.0.0",
+  "license": "MIT",
   "engines": {
     "vscode": "^1.93.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/maxvolumedev/erbalist.git"
   },
   "categories": [
     "Other"
   ],
+  "keywords": [
+    "erb",
+    "rails",
+    "hotwire",
+    "stimulus",
+    "tailwind"
+  ],
+  "bugs": {
+    "url": "https://github.com/maxvolumedev/erbalist/issues"
+  },
   "activationEvents": [
     "onLanguage:erb",
     "onStartupFinished"
@@ -37,12 +52,12 @@
       },
       {
         "command": "erbalist.toggleEmphasizedRuby.on",
-        "title": "ERBalist: Toggle Emphasized Ruby On",
+        "title": "ERBalist: Toggle Ruby Focus On",
         "when": "erbalist.emphasizedRubyEnabled == true"
       },
       {
         "command": "erbalist.toggleEmphasizedRuby.off",
-        "title": "ERBalist: Toggle Emphasized Ruby Off",
+        "title": "ERBalist: Toggle Ruby Focus Off",
         "when": "erbalist.emphasizedRubyEnabled != true"
       },
       {
@@ -52,6 +67,44 @@
       {
         "command": "erbalist.expandSvg",
         "title": "ERBalist: Expand SVG Tags"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "erbalist.toggleEmphasizedRuby.on",
+        "key": "cmd+k r",
+        "mac": "cmd+k r",
+        "when": "!erbalist.emphasizedRubyEnabled && editorLangId == erb"
+      },
+      {
+        "command": "erbalist.toggleEmphasizedRuby.off",
+        "key": "cmd+k r",
+        "mac": "cmd+k r",
+        "when": "erbalist.emphasizedRubyEnabled && editorLangId == erb"
+      },
+      {
+        "command": "erbalist.toggleTurboFrames.on",
+        "key": "cmd+k t",
+        "mac": "cmd+k t",
+        "when": "!erbalist.turboFramesEnabled && editorLangId == erb"
+      },
+      {
+        "command": "erbalist.toggleTurboFrames.off",
+        "key": "cmd+k t",
+        "mac": "cmd+k t",
+        "when": "erbalist.turboFramesEnabled && editorLangId == erb"
+      },
+      {
+        "command": "erbalist.toggleClassAttributes.on",
+        "key": "cmd+k c",
+        "mac": "cmd+k c",
+        "when": "!erbalist.classAttributesFolded && editorLangId == erb"
+      },
+      {
+        "command": "erbalist.toggleClassAttributes.off",
+        "key": "cmd+k c",
+        "mac": "cmd+k c",
+        "when": "erbalist.classAttributesFolded && editorLangId == erb"
       }
     ],
     "configuration": {
@@ -68,7 +121,7 @@
         },
         "erbalist.toggleWordWrapWithFolding": {
           "type": "boolean",
-          "default": false,
+          "default": true,
           "description": "Toggle word wrap when folding class attributes"
         }
       }
