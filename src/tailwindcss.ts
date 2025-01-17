@@ -264,12 +264,13 @@ export function activate(extensionContext: vscode.ExtensionContext) {
 					if (selection.intersection(range) || range.contains(selection.active)) {
 						expandedRanges.add(range)
 						
-						// Only move cursor on click with no selection
-						if (isMouse && selection.isEmpty) {
+						// Only move cursor on click with no selection and if range wasn't already expanded
+						const currentExpanded = temporarilyExpanded.get(editorKey) || new Set()
+						if (isMouse && selection.isEmpty && !Array.from(currentExpanded).some(r => r.isEqual(range))) {
 							const text = editor.document.getText(range)
-							const quoteMatch = text.match(/class=["']/)
+							const quoteMatch = text.match(/class[=:] ?["']([^"']*)/)
 							if (quoteMatch) {
-								const quotePos = range.start.translate(0, quoteMatch.index! + quoteMatch[0].length)
+								const quotePos = range.start.translate(0, quoteMatch.index! + quoteMatch[0].length - quoteMatch[1].length)
 								editor.selection = new vscode.Selection(quotePos, quotePos)
 							}
 						}
