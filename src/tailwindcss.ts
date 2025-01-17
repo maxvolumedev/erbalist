@@ -256,12 +256,11 @@ export function activate(extensionContext: vscode.ExtensionContext) {
 			const expandedRanges = new Set<vscode.Range>()
 			
 			const isMouse = e.kind === vscode.TextEditorSelectionChangeKind.Mouse
-			console.log('Selection change kind:', isMouse ? 'Mouse' : 'Keyboard')
 			
 			const foldedRangesForEditor = foldedRanges.get(editorKey) || []
 			for (const selection of editor.selections) {
-        if (!selection.isEmpty) { continue }
 				for (const range of foldedRangesForEditor) {
+					// keep ranges that contain the selection or cursor
 					if (selection.intersection(range) || range.contains(selection.active)) {
 						expandedRanges.add(range)
 						
@@ -280,7 +279,7 @@ export function activate(extensionContext: vscode.ExtensionContext) {
 
 			// Update expanded ranges if changed
 			const currentExpanded = temporarilyExpanded.get(editorKey) || new Set()
-			console.log('Current expanded:', currentExpanded.size, 'New expanded:', expandedRanges.size)
+
 			if (!setsEqual(currentExpanded, expandedRanges)) {
 				temporarilyExpanded.set(editorKey, expandedRanges)
 				applyFolding(editor)
